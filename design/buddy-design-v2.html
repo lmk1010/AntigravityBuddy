@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AntigravityBuddy · 设计稿 v2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@font-face{font-family:"Inter";src:url(assets/inter-latin.woff2) format("woff2");font-weight:100 900;font-display:block}
+@font-face{font-family:"Material Symbols Outlined";src:url(assets/symbols.woff2) format("woff2");font-weight:300;font-display:block}
+
+/* =========================================================
+   Tokens — 取自 Antigravity 2.33 运行时的 onyx 暗色主题（非目测）
+   ========================================================= */
+:root{
+  color-scheme:dark;
+  --background:#070708;                 /* 主面板 */
+  --shell:#111114;                      /* 窗口 / 侧栏 */
+  --glass:#131317;                      /* 浮层 */
+  --raised:#15151A;
+  --selected:rgb(255 255 255 / .09);    /* sidebar-secondary */
+  --hover:rgb(255 255 255 / .048);      /* sidebar-muted */
+  --muted:rgb(255 255 255 / .042);
+  --border:rgb(255 255 255 / .06);
+  --card-border:rgb(255 255 255 / .08);
+  --glass-border:rgb(255 255 255 / .085);
+  --track:rgb(255 255 255 / .07);
+
+  --fg:#FFFFFF;
+  --fg-2:#BCBDC6;                       /* secondary-foreground */
+  --fg-3:#87888F;                       /* muted-foreground */
+  --fg-4:#636470;                       /* placeholder */
+  --primary:#2F71E3;
+
+  /* 数据色（已在 #070708 上通过 validate_palette） */
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --warn:#fab219; --crit:#d03b3b; --good:#0ca30c;
+  --grid:rgb(255 255 255 / .05); --axis:rgb(255 255 255 / .14);
+
+  --font:"Inter",system-ui,-apple-system,"PingFang SC","Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;color:var(--fg);font-family:var(--font);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss03"}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:.92em;letter-spacing:-.01em}
+.ms{font-family:"Material Symbols Outlined";font-weight:300;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:"liga";font-feature-settings:"liga";font-size:18px;vertical-align:middle;flex:none;user-select:none}
+img.lg{width:14px;height:14px;display:block;flex:none}
+
+/* ---------- 画廊 ---------- */
+.gallery{max-width:1520px;margin:0 auto;padding:56px 40px 120px}
+.g-head{margin-bottom:44px;display:flex;justify-content:space-between;align-items:flex-end;gap:40px}
+.g-head h1{font-size:24px;font-weight:500;letter-spacing:-.02em}
+.g-head p{color:var(--fg-3);margin-top:10px;line-height:1.7;max-width:760px}
+.g-nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.g-nav a{color:var(--fg-2);text-decoration:none;padding:5px 11px;border:1px solid var(--card-border);border-radius:999px;font-size:12px}
+.shot{margin-bottom:80px}
+.shot-cap{display:flex;gap:12px;align-items:baseline;margin-bottom:14px}
+.shot-cap b{font-size:12px;color:var(--fg-4);font-weight:500}
+.shot-cap h2{font-size:15px;font-weight:500}
+.shot-cap span{color:var(--fg-3);font-size:12.5px}
+body.single .gallery{padding:0;max-width:none}
+body.single .g-head,body.single .shot-cap{display:none}
+body.single .shot{margin:0}
+body.single .win{border-radius:0;box-shadow:none}
+
+/* ---------- Antigravity 外壳 ---------- */
+.win{width:1440px;height:900px;background:var(--shell);border-radius:12px;overflow:hidden;display:grid;grid-template-columns:280px 1fr;box-shadow:0 0 0 1px rgb(255 255 255 / .09),0 40px 90px rgb(0 0 0 / .7);position:relative}
+.side{display:flex;flex-direction:column;padding:0 8px 8px;min-width:0}
+.tl{height:44px;display:flex;align-items:center;gap:8px;padding-left:10px;flex:none}
+.tl i{width:12px;height:12px;border-radius:50%}
+.tl i:nth-child(1){background:#ff5f57}.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+.tl .ic{margin-left:20px;display:flex;gap:14px;color:var(--fg-3)}
+.newc{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid var(--card-border);border-radius:8px;background:var(--muted);font-size:13.5px;margin:2px 0 8px}
+.nv{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;border-radius:8px;font-size:13.5px;color:var(--fg)}
+.nv .ms{color:var(--fg-3)}
+.nv.on{background:var(--selected)}
+.nh{display:flex;justify-content:space-between;align-items:center;color:var(--fg-3);font-size:12.5px;padding:20px 10px 6px}
+.nh .ms{font-size:16px}
+.pj{display:flex;align-items:center;gap:9px;height:30px;padding:0 10px;color:var(--fg-3);font-size:13.5px}
+.cv{display:flex;justify-content:space-between;align-items:center;height:32px;padding:0 10px 0 37px;border-radius:8px;font-size:13.5px}
+.cv span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:182px}
+.cv em{font-style:normal;color:var(--fg-3);font-size:12px}
+.cv .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:3px}
+.side .foot{margin-top:auto}
+
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 8px;flex:none}
+.topbar .t{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500}
+.tbtn{border:1px solid var(--card-border);border-radius:8px;height:28px;padding:0 10px;font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--fg)}
+.pane{flex:1;margin:0 8px 8px 0;background:var(--background);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.blogo{width:18px;height:18px;border-radius:5px;background:rgb(47 113 227 / .16);display:grid;place-items:center;flex:none}
+
+/* ---------- Buddy 页内导航 ---------- */
+.sub{height:48px;flex:none;display:flex;align-items:stretch;justify-content:space-between;padding:0 32px;border-bottom:1px solid var(--border)}
+.tabs{display:flex;gap:24px}
+.tabs a{display:flex;align-items:center;font-size:13px;color:var(--fg-3);position:relative}
+.tabs a.on{color:var(--fg)}
+.tabs a.on:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1.5px;background:var(--fg)}
+.sub-r{display:flex;align-items:center;gap:6px}
+.ctl{display:flex;align-items:center;gap:6px;height:28px;padding:0 9px;border-radius:7px;color:var(--fg-2);font-size:12.5px;white-space:nowrap}
+.ctl.b{border:1px solid var(--card-border)}
+.ctl .ms{font-size:16px;color:var(--fg-3)}
+.who{width:18px;height:18px;border-radius:50%;background:#3b5bdb;display:grid;place-items:center;font-size:10px;font-weight:600;flex:none}
+.sync{display:flex;align-items:center;gap:7px;color:var(--fg-3);font-size:12px;padding:0 8px}
+.sync i{width:6px;height:6px;border-radius:50%;background:var(--good)}
+.vsep{width:1px;height:16px;background:var(--border);margin:0 4px}
+
+.body{flex:1;min-height:0;overflow:hidden;padding:28px 32px}
+.hr{height:1px;background:var(--border);margin:24px 0}
+.cols{display:grid;gap:48px}
+
+/* ---------- 排版原语 ---------- */
+.lbl{font-size:12px;color:var(--fg-3);display:flex;align-items:center;gap:6px;height:16px}
+.big{font-size:26px;font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-top:8px}
+.big small{font-size:13px;font-weight:400;color:var(--fg-4);letter-spacing:0;margin-left:2px}
+.cap{font-size:12px;color:var(--fg-3);margin-top:8px}
+.h{display:flex;align-items:center;justify-content:space-between;height:20px;margin-bottom:14px}
+.h h3{font-size:13px;font-weight:500}
+.h .x{font-size:12px;color:var(--fg-3);display:flex;align-items:center;gap:12px}
+.lk{color:var(--fg-2);display:inline-flex;align-items:center;gap:2px}
+.lk .ms{font-size:15px}
+.lgd{display:flex;gap:14px;font-size:12px;color:var(--fg-3)}
+.lgd i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:6px}
+.seg{display:flex;background:var(--muted);border-radius:7px;padding:2px}
+.seg span{padding:2px 9px;font-size:12px;color:var(--fg-3);border-radius:5px;line-height:18px}
+.seg span.on{background:rgb(255 255 255 / .1);color:var(--fg)}
+.pill{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:4px;background:var(--muted);color:var(--fg-3);font-size:10.5px;font-weight:500;letter-spacing:.02em}
+.btn{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:7px;border:1px solid var(--card-border);font-size:12px;color:var(--fg);white-space:nowrap}
+.btn.p{background:var(--fg);color:#0a0a0c;border-color:transparent;font-weight:500}
+.row{display:flex;align-items:center}
+.sp{flex:1}
+.r{text-align:right}
+.el{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dim{color:var(--fg-3)} .dim2{color:var(--fg-4)}
+svg text{font-family:var(--font)}
+.tip{position:fixed;pointer-events:none;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6),0 2px 8px -2px rgb(0 0 0 / .4);z-index:99;display:none;white-space:nowrap;line-height:1.65}
+.hit:hover .mk{opacity:.8}
+
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}
+table.t th{font-weight:400;color:var(--fg-3);font-size:12px;text-align:left;height:32px;padding:0 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.t td{height:38px;padding:0 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.t th.r,table.t td.r{text-align:right}
+table.t th:first-child,table.t td:first-child{padding-left:0}
+table.t th:last-child,table.t td:last-child{padding-right:0}
+table.t tr.sel td{background:var(--hover)}
+table.t tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--fg)}
+</style>
+</head>
+<body>
+<div class="tip" id="tip"></div>
+<div class="gallery">
+  <div class="g-head">
+    <div>
+      <h1>AntigravityBuddy · 设计稿 v2</h1>
+      <p>配色、边框、圆角、字体取自 Antigravity 2.33 运行时的 onyx 主题变量；图标为其使用的 Google Symbols；模型标识为各家官方 logo。<br>
+      Token 相关数字来自本机 transcript 实测；模型额度的剩余比例、其余账号、上下文分类为演示数据。</p>
+    </div>
+    <div class="g-nav" id="gnav"></div>
+  </div>
+  <div id="shots"></div>
+</div>
+
+<script>
+/* ================= 数据 ================= */
+// 近 24h（本地 EST 09:00 → 08:00），实测：[时, 新增输入, 输出, 缓存命中, 调用]
+const H=[[9,760219,119432,24052469,118],[10,507314,78605,33175575,106],[11,258089,7617,1841159,9],[12,0,0,0,0],[13,0,0,0,0],[14,0,0,0,0],[15,0,0,0,0],[16,0,0,0,0],[17,0,0,0,0],[18,0,0,0,0],[19,506554,75517,22290480,62],[20,845658,154789,32364358,109],[21,678041,86072,22669920,84],[22,615119,35930,6011865,33],[23,0,0,0,0],[0,0,0,0,0],[1,0,0,0,0],[2,337901,134527,3211625,49],[3,74525,21206,123957,8],[4,66616,20743,129848,4],[5,0,0,0,0],[6,171274,11570,185205,5],[7,913494,25242,1240992,37],[8,96424,2283,261270,4]];
+const D=[['11-14',0,0,0,0],['11-15',0,0,0,0],['11-16',0,0,0,0],['11-17',2951220,314893,20415375,215],['11-18',11220054,618426,70799077,300],['11-19',5470239,688777,172352422,637],['11-20',1660234,215571,5152897,107]];
+const S=[['Future Trends And Personal Growth',213,8240581,388779],['Server Deployment And Fixes',637,5470239,688777],['Neox UI Design Optimization',110,4734987,301591],['工程类型识别与解析',30,291642,120609],['OA审批队长选择限制排查',19,368481,37035]];
+const fmt=n=>n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(n>=1e8?0:2)+'M':n>=1e3?(n/1e3).toFixed(n>=1e5?0:1)+'K':String(n);
+const ax=n=>n>=1e6?+(n/1e6).toFixed(1)+'M':n>=1e3?+(n/1e3).toFixed(0)+'K':String(n);
+const comma=n=>n.toLocaleString('en-US');
+const sum=(a,i)=>a.reduce((s,r)=>s+r[i],0);
+const T={in:sum(H,1),out:sum(H,2),cache:sum(H,3),calls:sum(H,4)};T.real=T.in+T.out;T.total=T.real+T.cache;T.hit=T.cache/(T.cache+T.in);
+const hh=h=>String(h).padStart(2,'0');
+
+/* ================= 原语 ================= */
+const ic=(n,s)=>`<span class="ms"${s?` style="font-size:${s}px"`:''}>${n}</span>`;
+const logoOf=id=>/claude|opus|sonnet/i.test(id)?'claude':/gpt|openai/i.test(id)?'openai':'gemini';
+const lg=(id,s)=>`<img class="lg" src="assets/${logoOf(id)}.svg"${s?` style="width:${s}px;height:${s}px"`:''}>`;
+const tipA=h=>`data-tip="${h.replace(/"/g,'&quot;')}"`;
+const sw=c=>`<i style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${c};margin-right:7px"></i>`;
+const BLOGO=`<span class="blogo"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 8V5.5M5 8V2M8 8V4" stroke="#7BA7F2" stroke-width="1.5" stroke-linecap="round"/></svg></span>`;
+
+// 额度条：正常=主色；未动用=降一档；偏低/耗尽用状态色
+function qm(f,w=72){
+  const c=f<=.1?'var(--crit)':f<=.25?'var(--warn)':'var(--s1)';
+  return `<span style="display:block;width:${typeof w==='number'?w+'px':w};height:3px;border-radius:2px;background:var(--track);overflow:hidden"><span style="display:block;width:${Math.max(f*100,2)}%;height:100%;border-radius:2px;background:${c};opacity:${f>=1?.45:1}"></span></span>`;
+}
+const pc=f=>`<span class="num" style="color:${f>=1?'var(--fg-4)':f<=.25?'var(--fg)':'var(--fg-2)'}">${Math.round(f*100)}%</span>`;
+const bar=(f,c='var(--s1)',w='100%')=>`<span style="display:block;width:${w};height:3px;border-radius:2px;background:var(--track)"><span style="display:block;width:${f*100}%;height:100%;border-radius:2px;background:${c}"></span></span>`;
+
+function stacked({rows,colors,w,h,yMax,yTicks,pad={l:36,r:0,t:6,b:22},barMax=14,every=1}){
+  const iw=w-pad.l-pad.r,ih=h-pad.t-pad.b,band=iw/rows.length,bw=Math.min(barMax,band*.6);let g='';
+  yTicks.forEach(t=>{const y=Math.round(pad.t+ih-(t/yMax)*ih)+.5;
+    g+=`<line x1="${pad.l}" x2="${w-pad.r}" y1="${y}" y2="${y}" stroke="${t?'var(--grid)':'var(--axis)'}"/>`;
+    g+=`<text x="${pad.l-10}" y="${y+3.5}" fill="var(--fg-4)" font-size="10.5" text-anchor="end" class="num">${ax(t)}</text>`;});
+  rows.forEach((r,i)=>{
+    const x=pad.l+band*i+(band-bw)/2;let y=pad.t+ih,segs='';
+    const vis=r.parts.map((v,k)=>[v,k]).filter(([v])=>v>0);
+    vis.forEach(([v,k],j)=>{const hgt=Math.max(1,(v/yMax)*ih-(j?2:0));y-=hgt+(j?2:0);const top=j===vis.length-1,rr=top?Math.min(3,hgt):0;
+      segs+=top?`<path class="mk" d="M${x},${y+hgt}V${y+rr}Q${x},${y} ${x+rr},${y}H${x+bw-rr}Q${x+bw},${y} ${x+bw},${y+rr}V${y+hgt}Z" fill="${colors[k]}"/>`:`<rect class="mk" x="${x}" y="${y}" width="${bw}" height="${hgt}" fill="${colors[k]}"/>`;});
+    g+=`<g class="hit" ${tipA(r.tip||'')}><rect x="${pad.l+band*i}" y="${pad.t}" width="${band}" height="${ih}" fill="transparent"/>${segs}</g>`;
+    if(i%every===0)g+=`<text x="${x+bw/2}" y="${h-5}" fill="var(--fg-4)" font-size="10.5" text-anchor="middle" class="num">${r.label}</text>`;
+  });
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block">${g}</svg>`;
+}
+function spark(v,w,h,c='var(--s1)',area=true){
+  const mx=Math.max(...v)||1,mn=Math.min(...v,0),st=w/(v.length-1),p=v.map((x,i)=>[i*st,h-3-((x-mn)/(mx-mn||1))*(h-8)]);
+  const d=p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1)).join(''),l=p[p.length-1];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible">${area?`<path d="${d}L${w},${h}L0,${h}Z" fill="${c}" opacity=".1"/>`:''}<path d="${d}" fill="none" stroke="${c}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${l[0]}" cy="${l[1]}" r="3.5" fill="${c}" stroke="var(--background)" stroke-width="2"/></svg>`;
+}
+function ring(f,size,c,sw_=2.5){const r=(size-sw_)/2,C=2*Math.PI*r;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);display:block"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgb(255 255 255 / .12)" stroke-width="${sw_}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${c}" stroke-width="${sw_}" stroke-linecap="round" stroke-dasharray="${C*f} ${C}"/></svg>`;}
+
+/* ================= 外壳 ================= */
+function sidebar(active='buddy'){
+  const cv=(t,m,key)=>`<div class="cv"${key===active?' style="background:var(--selected)"':''}><span>${t}</span>${m==='•'?'<i class="dot"></i>':`<em>${m}</em>`}</div>`;
+  return `<aside class="side">
+    <div class="tl"><i></i><i></i><i></i><div class="ic">${ic('side_navigation')}${ic('arrow_back')}<span style="opacity:.45">${ic('arrow_forward')}</span>${ic('search')}</div></div>
+    <div class="newc">${ic('add')} New Conversation</div>
+    <div class="nv">${ic('schedule')} Automations</div>
+    <div class="nv">${ic('business_center')} Customizations</div>
+    <div class="nh">Extensions ${ic('filter_list')}</div>
+    <div class="nv${active==='buddy'?' on':''}">${BLOGO} Buddy</div>
+    <div class="nh">Projects <span style="display:flex;gap:10px">${ic('filter_list')}${ic('create_new_folder')}</span></div>
+    <div class="pj">${ic('folder_open')} Neox</div>
+    ${cv('Server Deployment And Fixes','•')}${cv('Future Trends And Personal Growth','•')}${cv('Neox UI Design Optimization','5h','chat')}${cv('Casual Greeting','9h')}${cv('Neox Edu Legal Deep Research','2d')}
+    <div class="pj">${ic('folder_open')} KYDev</div>
+    ${cv('OA审批队长选择限制排查','2d')}${cv('工程类型识别与解析','2d')}
+    <div class="nh">Conversations ${ic('add')}</div>
+    <div class="cv" style="padding-left:10px"><span>General Greeting</span><em>2d</em></div>
+    <div class="nv foot">${ic('settings')} Settings</div>
+  </aside>`;
+}
+const TABS=[['overview','概览'],['quota','额度'],['tokens','用量'],['ledger','明细'],['accounts','账号'],['settings','设置']];
+const ACCT=`<div class="ctl"><span class="who">M</span>lmkbnb1@gmail.com <span class="pill">PRO</span>${ic('unfold_more')}</div>`;
+function sub(active,right=''){
+  return `<div class="sub"><nav class="tabs">${TABS.map(([k,v])=>`<a class="${k===active?'on':''}">${v}</a>`).join('')}</nav>
+  <div class="sub-r">${right}${right?'<span class="vsep"></span>':''}<span class="sync"><i></i>已同步 08:07</span>${ACCT}</div></div>`;
+}
+const shell=(inner,active)=>`<div class="win">${sidebar(active)}<div class="main"><div class="topbar"><div class="t">${BLOGO} Buddy</div><div class="tbtn">Open IDE</div></div><div class="pane">${inner}</div></div></div>`;
+
+/* ================= 额度数据（演示状态） ================= */
+const TIERS=['Low','Medium','High','XHigh'];
+const FAM=[
+ ['Gemini 4 Neon','gemini-4-neon',[1,.94,.18,.62],'12:00','3h 53m',219],
+ ['Gemini 4 Hydrogen','gemini-4-hydrogen',[1,1,.85,1],'12:00','3h 53m',38],
+ ['Gemini 4 Argon','gemini-4-argon',[1,1,.76,null],'11-27 07:12','6d 23h',18],
+ ['Gemini 3.8 Flash','gemini-3.8-flash',[1,1,1,null],'12:00','3h 53m',0],
+ ['Claude Opus 5.5','claude-opus-5-5',[1,.71,.07,null],'12:12','4h 05m',73],
+ ['Claude Sonnet 5.5','claude-sonnet-5-5',[1,1,.9,null],'12:12','4h 05m',4],
+];
+const OTHER=[['Gemini 3.1 Flash Image','gemini-3.1-flash-image',.55,'12:00'],['Gemini 4 Hydrogen · Orchestrator','gemini-flash-worker-agy',.97,'12:00'],['Gemini 3.5 Flash Lite','gemini-3.5-flash-lite',1,'12:00'],['Gemini 3.1 Flash Lite','gemini-3.1-flash-lite',1,'12:00'],['Gemini 3 Flash','gemini-3-flash',1,'12:00'],['Gemini 2.5 Pro','gemini-2.5-pro',1,'12:00'],['Orchestrator · Neon','gemini-pro-orchestrator-neon',1,'12:00'],['Orchestrator · Argon','gemini-pro-orchestrator-g1-pro',1,'11-27 07:12'],['Gemini 4 Hydrogen · Sonar','gemini-4-hydrogen-sonar',1,'12:00'],['GPT-OSS 120B','gpt-oss-120b-medium',1,'12:12']];
+
+/* ================= ① 概览 ================= */
+function scrOverview(){
+  const rows=H.map(r=>({label:hh(r[0]),parts:[r[1],r[2]],tip:`<span class="dim">${hh(r[0])}:00</span><br>${sw('var(--s1)')}新增输入 <b style="font-weight:500">${fmt(r[1])}</b><br>${sw('var(--s2)')}输出 <b style="font-weight:500">${fmt(r[2])}</b><br><span class="dim">缓存 ${fmt(r[3])} · ${r[4]} 次调用</span>`}));
+  const tight=[['Claude Opus 5.5 · High','claude',.07,'4h 05m'],['Gemini 4 Neon · High','gemini',.18,'3h 53m'],['Gemini 3.1 Flash Image','gemini',.55,'3h 53m'],['Gemini 4 Neon · XHigh','gemini',.62,'3h 53m'],['Claude Opus 5.5 · Medium','claude',.71,'4h 05m'],['Gemini 4 Argon · High','gemini',.76,'6d 23h']];
+  const sm=Math.max(...S.map(s=>s[2]+s[3]));
+  return shell(sub('overview')+`<div class="body">
+    <div class="cols" style="grid-template-columns:repeat(4,1fr)">
+      <div><div class="lbl">Prompt 积分</div><div class="big num">500<small>/ 50,000</small></div><div style="margin-top:14px">${qm(500/50000,'100%')}</div><div class="cap num">剩余 1.0% · 本月已用 49,500</div></div>
+      <div><div class="lbl">Flow 积分</div><div class="big num">100<small>/ 150,000</small></div><div style="margin-top:14px">${qm(100/150000,'100%')}</div><div class="cap num">剩余 0.07% · 本月已用 149,900</div></div>
+      <div><div class="lbl">真实消耗 · 24h</div><div class="big num">${fmt(T.real)}</div><div style="margin-top:14px;display:flex;height:3px;gap:2px"><span style="flex:${T.in};background:var(--s1);border-radius:2px"></span><span style="flex:${T.out};background:var(--s2);border-radius:2px"></span></div><div class="cap num">输入 ${fmt(T.in)} · 输出 ${fmt(T.out)}</div></div>
+      <div><div class="lbl">缓存命中率 · 24h</div><div class="big num">${(T.hit*100).toFixed(1)}<small>%</small></div><div style="margin-top:14px">${bar(T.hit,'var(--s3)')}</div><div class="cap num">复用 ${fmt(T.cache)} · 仅 ${fmt(T.in)} 为新增输入</div></div>
+    </div>
+    <div class="hr"></div>
+    <div class="cols" style="grid-template-columns:1fr 388px">
+      <div>
+        <div class="h"><h3>Tokens</h3><div class="x"><span class="num">${comma(T.calls)} 次调用</span><span class="lgd"><span><i style="background:var(--s1)"></i>新增输入</span><span><i style="background:var(--s2)"></i>输出</span></span><div class="seg"><span class="on">24h</span><span>7d</span><span>30d</span></div></div></div>
+        ${stacked({rows,colors:['var(--s1)','var(--s2)'],w:652,h:250,yMax:1200000,yTicks:[0,400000,800000,1200000],every:3})}
+      </div>
+      <div>
+        <div class="h"><h3>模型额度</h3><div class="x"><span class="lk">全部 36 个${ic('chevron_right')}</span></div></div>
+        ${tight.map(([n,p,f,cd])=>`<div class="row" style="height:36px;gap:10px">${lg(p)}<span class="el" style="flex:1">${n}</span>${qm(f,64)}<span class="r" style="width:34px;font-size:12.5px">${pc(f)}</span><span class="num dim2 r" style="width:50px;font-size:12px">${cd}</span></div>`).join('')}
+        <div class="cap" style="margin-top:10px;display:flex;gap:6px;align-items:center"><span class="ms" style="font-size:15px;color:var(--crit)">error</span>Opus 5.5 High 预计 09:45 用完，早于 12:12 重置</div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="cols" style="grid-template-columns:1fr 1fr 1fr">
+      <div>
+        <div class="h"><h3>会话</h3><div class="x">累计真实消耗</div></div>
+        ${S.map(s=>`<div class="row" style="height:30px;gap:12px"><span class="el" style="flex:1;color:var(--fg-2)">${s[0]}</span><span style="width:72px">${bar((s[2]+s[3])/sm,'rgb(255 255 255 / .38)')}</span><span class="num r" style="width:46px;font-size:12.5px">${fmt(s[2]+s[3])}</span></div>`).join('')}
+      </div>
+      <div>
+        <div class="h"><h3>耗尽预测</h3><div class="x">按近 3 小时速率</div></div>
+        <div class="row" style="gap:10px;height:30px">${lg('claude')}<span>Claude Opus 5.5 · High</span><span class="sp"></span><span class="num" style="font-weight:500">约 1h 40m</span></div>
+        <div style="position:relative;height:44px;margin-top:10px">
+          <span style="position:absolute;left:0;right:0;top:6px;height:3px;border-radius:2px;background:var(--track)"></span>
+          <span style="position:absolute;left:0;width:40%;top:6px;height:3px;border-radius:2px;background:var(--crit)"></span>
+          <span style="position:absolute;left:40%;top:1px;width:1.5px;height:13px;background:var(--fg)"></span>
+          <span class="num dim2" style="position:absolute;left:0;top:22px;font-size:11.5px">现在 08:05</span>
+          <span class="num" style="position:absolute;left:40%;top:22px;font-size:11.5px;transform:translateX(-50%)">09:45 用完</span>
+          <span class="num dim2" style="position:absolute;right:0;top:22px;font-size:11.5px">12:12 重置</span>
+        </div>
+        <div class="cap" style="margin-top:14px;line-height:1.7">可改用 <span style="color:var(--fg-2)">Opus 5.5 Medium</span>（剩 71%）或 <span style="color:var(--fg-2)">Neon XHigh</span>（剩 62%）</div>
+      </div>
+      <div>
+        <div class="h"><h3>本周</h3><div class="x num">11-14 – 11-20</div></div>
+        ${stacked({rows:D.map(d=>({label:d[0].slice(3),parts:[d[1],d[2]],tip:`<span class="dim">${d[0]}</span><br>${sw('var(--s1)')}新增输入 ${fmt(d[1])}<br>${sw('var(--s2)')}输出 ${fmt(d[2])}<br><span class="dim">${d[4]} 次调用</span>`})),colors:['var(--s1)','var(--s2)'],w:330,h:150,yMax:12000000,yTicks:[0,6000000,12000000],barMax:16})}
+      </div>
+    </div>
+  </div>`);
+}
+
+/* ================= ② 额度 ================= */
+function scrQuota(){
+  const cell=(f,id,t)=>f==null?`<td class="dim2">—</td>`:`<td class="hit" ${tipA(`<span class="mono dim">${id}-${t.toLowerCase()}</span><br>剩余 ${Math.round(f*100)}%`)}><span class="row" style="gap:10px">${qm(f,72)}<span style="font-size:12.5px;width:30px">${pc(f)}</span>${f<=.1?`<span class="ms" style="font-size:14px;color:var(--crit);margin-left:-4px">error</span>`:f<=.25?`<span class="ms" style="font-size:14px;color:var(--warn);margin-left:-4px">warning</span>`:''}</span></td>`;
+  return shell(sub('quota',`<div class="ctl">${ic('search')}<span class="dim2">搜索模型</span></div>`)+`<div class="body">
+    <div class="cols" style="grid-template-columns:repeat(4,1fr)">
+      <div><div class="lbl">可用模型</div><div class="big num">36<small>/ 39</small></div><div class="cap">1 个已停用 · 2 个仅用于补全</div></div>
+      <div><div class="lbl">需要留意</div><div class="big num">2</div><div class="cap">Opus 5.5 High 7% · Neon High 18%</div></div>
+      <div><div class="lbl">每日窗口重置</div><div class="big num">3h 53m</div><div class="cap num">12:00 Gemini · 12:12 Claude / GPT</div></div>
+      <div><div class="lbl">每周窗口重置</div><div class="big num">6d 23h</div><div class="cap num">11-27 07:12 · Gemini 4 Argon</div></div>
+    </div>
+    <div class="hr"></div>
+    <div class="h"><h3>按推理强度</h3><div class="x">剩余比例 · 悬停查看模型 ID</div></div>
+    <table class="t"><thead><tr><th style="width:240px">模型</th>${TIERS.map(t=>`<th style="width:150px">${t}</th>`).join('')}<th class="r">今日调用</th><th class="r" style="width:150px">重置</th></tr></thead><tbody>
+      ${FAM.map(([n,id,fs,rt,cd,calls])=>`<tr><td><span class="row" style="gap:10px">${lg(id)}${n}</span></td>${fs.map((f,i)=>cell(f,id,TIERS[i])).join('')}<td class="r num" style="color:${calls?'var(--fg-2)':'var(--fg-4)'}">${calls||'—'}</td><td class="r num dim">${rt} <span class="dim2">· ${cd}</span></td></tr>`).join('')}
+    </tbody></table>
+    <div class="h" style="margin-top:28px"><h3>其他模型</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:48px">
+      ${OTHER.map(([n,id,f,rt])=>`<div class="row hit" ${tipA(`<span class="mono dim">${id}</span>`)} style="height:36px;gap:10px;border-bottom:1px solid var(--border)">${lg(id)}<span class="el" style="flex:1">${n}</span>${qm(f,72)}<span class="r" style="width:36px;font-size:12.5px">${pc(f)}</span><span class="num dim2 r" style="width:84px;font-size:12px">${rt}</span></div>`).join('')}
+    </div>
+  </div>`);
+}
+
+/* ================= ③ 用量 ================= */
+function heat(W){
+  const days=['六','日','一','二','三','四','五'],date=['11-14','11-15','11-16','11-17','11-18','11-19','11-20'];
+  const data={3:{21:174625,22:1096969,23:1679626},4:{0:4203129,1:4593986,2:2377709,3:45230},5:{4:67620,7:438459,8:793166,9:760219,10:507314,11:258089,19:506554,20:845658,21:678041,22:615119},6:{2:337901,3:74525,4:66616,6:171274,7:913494,8:96424}};
+  const steps=['rgb(255 255 255 / .05)','#184f95','#256abf','#3987e5','#6da7ec','#9ec5f4'];
+  const lx=22,gap=2.5,cs=(W-lx-23*gap)/24;let g='';
+  days.forEach((d,r)=>{if(r%2)g+=`<text x="0" y="${r*(cs+gap)+cs-1.5}" fill="var(--fg-4)" font-size="10.5">${d}</text>`;
+    for(let h=0;h<24;h++){const v=(data[r]||{})[h]||0,s=v===0?0:v<200000?1:v<700000?2:v<1500000?3:v<4000000?4:5;
+      g+=`<rect class="hit" ${tipA(`<span class="dim">${date[r]} ${hh(h)}:00</span><br>新增输入 ${v?fmt(v):'—'}`)} x="${lx+h*(cs+gap)}" y="${r*(cs+gap)}" width="${cs}" height="${cs}" rx="2.5" fill="${steps[s]}"/>`;}});
+  [0,6,12,18].forEach(h=>g+=`<text x="${lx+h*(cs+gap)}" y="${7*(cs+gap)+11}" fill="var(--fg-4)" font-size="10.5" class="num">${hh(h)}</text>`);
+  return `<svg width="${W}" height="${7*(cs+gap)+14}" style="display:block">${g}</svg><div class="row" style="gap:4px;margin-top:12px;font-size:11.5px;color:var(--fg-4)">少${steps.map(c=>`<i style="width:10px;height:10px;border-radius:2.5px;background:${c}"></i>`).join('')}多</div>`;
+}
+function scrTokens(){
+  const M=[['claude-opus-5-5-high',2140211,180244,61208400,64],['gemini-4-neon-high',1608803,200759,4900250,86],['gemini-4-neon-xhigh',512300,48200,8120000,41],['gemini-3.1-flash-image',388120,42110,2101000,23],['gemini-4-hydrogen-tiered-high',46259,13918,77579,19]];
+  const mm=Math.max(...M.map(m=>m[1]+m[2]));
+  const hit=H.filter(r=>r[1]>0).map(r=>r[3]/(r[3]+r[1]));
+  const st=[['调用',comma(T.calls),'全部成功'],['新增输入',fmt(T.in),'实际发出的输入'],['缓存复用',fmt(T.cache),`占输入 ${(T.hit*100).toFixed(1)}%`],['输出',fmt(T.out),'模型生成'],['真实消耗',fmt(T.real),'新增输入 + 输出'],['合计',fmt(T.total),'含缓存复用']];
+  return shell(sub('tokens',`<div class="ctl b">${ic('calendar_today')}近 24 小时${ic('expand_more')}</div><div class="ctl">全部模型${ic('expand_more')}</div><div class="ctl">全部会话${ic('expand_more')}</div><div class="ctl">${ic('ios_share')}导出</div>`)+`<div class="body">
+    <div class="cols" style="grid-template-columns:repeat(6,1fr);gap:32px">${st.map(([l,v,c])=>`<div><div class="lbl">${l}</div><div class="big num" style="font-size:24px">${v}</div><div class="cap" style="margin-top:6px">${c}</div></div>`).join('')}</div>
+    <div class="hr"></div>
+    <div class="h"><h3>真实消耗</h3><div class="x"><span class="lgd"><span><i style="background:var(--s1)"></i>新增输入</span><span><i style="background:var(--s2)"></i>输出</span></span><div class="seg"><span class="on">真实消耗</span><span>含缓存</span><span>调用次数</span></div></div></div>
+    ${stacked({rows:H.map(r=>({label:hh(r[0])+':00',parts:[r[1],r[2]],tip:`<span class="dim">${hh(r[0])}:00</span><br>${sw('var(--s1)')}新增输入 ${fmt(r[1])}<br>${sw('var(--s2)')}输出 ${fmt(r[2])}<br><span class="dim">缓存 ${fmt(r[3])} · ${r[4]} 次</span>`})),colors:['var(--s1)','var(--s2)'],w:1086,h:236,yMax:1200000,yTicks:[0,300000,600000,900000,1200000],every:2,barMax:18})}
+    <div class="hr"></div>
+    <div class="cols" style="grid-template-columns:400px 1fr 270px">
+      <div>
+        <div class="h"><h3>模型</h3><div class="x">真实消耗 · 调用</div></div>
+        ${M.map(m=>`<div class="row hit" ${tipA(`<span class="mono dim">${m[0]}</span><br>${sw('var(--s1)')}新增输入 ${fmt(m[1])}<br>${sw('var(--s2)')}输出 ${fmt(m[2])}<br><span class="dim">缓存 ${fmt(m[3])} · 命中 ${(m[3]/(m[3]+m[1])*100).toFixed(1)}%</span>`)} style="height:32px;gap:10px">${lg(m[0])}<span class="mono el" style="width:176px;color:var(--fg-2)">${m[0]}</span><span style="flex:1;display:flex;height:3px;gap:2px"><span class="mk" style="width:${m[1]/mm*100}%;background:var(--s1);border-radius:2px"></span><span class="mk" style="width:${Math.max(m[2]/mm*100,1.5)}%;background:var(--s2);border-radius:2px"></span></span><span class="num r" style="width:44px;font-size:12.5px">${fmt(m[1]+m[2])}</span><span class="num r dim2" style="width:24px;font-size:12px">${m[4]}</span></div>`).join('')}
+        <div class="cap" style="margin-top:10px">九成记录未写模型字段，按所属会话归因</div>
+      </div>
+      <div>
+        <div class="h"><h3>活跃时段</h3><div class="x">近 7 天 · 新增输入</div></div>
+        ${heat(322)}
+      </div>
+      <div>
+        <div class="h"><h3>缓存命中率</h3><div class="x">逐小时</div></div>
+        <div class="row" style="align-items:baseline;gap:8px"><span class="num" style="font-size:22px;font-weight:500;letter-spacing:-.02em">${(T.hit*100).toFixed(1)}%</span><span class="dim" style="font-size:12px">24h 平均</span></div>
+        <div style="margin-top:16px">${spark(hit,266,58,'var(--s3)')}</div>
+        <div class="cap" style="margin-top:14px;line-height:1.6">03:00 后降至 52%，多为新开会话或上下文被压缩</div>
+      </div>
+    </div>
+  </div>`);
+}
+
+/* ================= ④ 明细 ================= */
+function scrLedger(){
+  const R=[['08:04:51','Neox UI Design Optimization','gemini-4-neon-high',4612,108,73912,18],['08:02:20','Neox UI Design Optimization','gemini-4-neon-high',9214,174,73905,32],['08:01:39','Neox UI Design Optimization','gemini-4-neon-high',73944,1402,0,78],['07:46:12','Casual Greeting','claude-opus-5-5-high',81510,511,0,41],['07:45:58','Casual Greeting','claude-opus-5-5-high',52212,545,0,40],['07:31:07','Server Deployment And Fixes','gemini-4-neon-high',263024,2801,0,91],['07:30:02','Server Deployment And Fixes','gemini-4-neon-high',4684,1585,257110,106],['07:29:41','Server Deployment And Fixes','gemini-4-neon-high',257210,771,0,46],['07:28:09','Server Deployment And Fixes','gemini-4-neon-high',7210,8124,58412,97],['07:27:28','Server Deployment And Fixes','gemini-4-neon-high',18502,296,30710,55],['07:27:21','Server Deployment And Fixes','gemini-4-neon-high',5801,455,24806,83],['07:27:10','Server Deployment And Fixes','gemini-4-neon-high',9612,323,15204,40],['07:27:04','Server Deployment And Fixes','gemini-4-neon-high',2301,240,12910,44],['07:26:58','Server Deployment And Fixes','gemini-4-hydrogen-tiered-high',2210,158,10706,25],['07:25:51','OA审批队长选择限制排查','gemini-4-neon-high',12810,38,0,11],['07:25:40','OA审批队长选择限制排查','gemini-4-neon-high',11902,412,0,52],['07:24:18','OA审批队长选择限制排查','gemini-4-neon-high',3120,96,8204,37]];
+  const tr=(r,i)=>{const h=r[5]/(r[5]+r[3]);return `<tr${i===8?' class="sel"':''}><td class="num dim" style="${i===8?'padding-left:12px':''}">${r[0]}</td><td><span class="el" style="display:block;max-width:156px">${r[1]}</span></td><td><span class="row" style="gap:8px">${lg(r[2])}<span class="mono el" style="max-width:150px;color:var(--fg-2)">${r[2]}</span></span></td><td class="r num">${fmt(r[3])}</td><td class="r num">${r[5]?fmt(r[5]):'<span class="dim2">—</span>'}</td><td><span class="row" style="gap:8px;justify-content:flex-end"><span style="width:40px">${bar(h,'var(--s3)')}</span><span class="num r" style="width:30px;color:${r[5]?'var(--fg-2)':'var(--fg-4)'}">${Math.round(h*100)}%</span></span></td><td class="r num">${fmt(r[4])}</td><td class="r num">${r[6]} <span class="dim2">tok/s</span></td></tr>`;};
+  const kv=(k,v,m)=>`<div class="row" style="height:28px;justify-content:space-between"><span class="dim">${k}</span><span class="${m?'mono':'num'}" style="color:var(--fg-2)">${v}</span></div>`;
+  return shell(sub('ledger',`<div class="ctl">${ic('search')}<span class="dim2">搜索会话或模型</span></div><div class="ctl b">${ic('calendar_today')}今天${ic('expand_more')}</div><div class="ctl">${ic('ios_share')}CSV</div>`)+`<div class="body" style="padding:0;display:flex">
+    <div style="flex:1;min-width:0;padding:20px 28px 0 32px">
+      <div class="row" style="gap:10px;height:28px;margin-bottom:10px"><div class="seg"><span class="on">全部</span><span>Gemini</span><span>Claude</span></div><span class="dim num" style="margin-left:auto;font-size:12px">404 条</span></div>
+      <table class="t"><thead><tr><th>时间</th><th>会话</th><th>模型</th><th class="r">新增输入</th><th class="r">缓存</th><th class="r">命中</th><th class="r">输出</th><th class="r">速度</th></tr></thead><tbody>${R.map(tr).join('')}</tbody></table>
+    </div>
+    <div style="width:308px;flex:none;border-left:1px solid var(--border);padding:22px 28px;display:flex;flex-direction:column">
+      <div class="row" style="justify-content:space-between"><span style="font-weight:500">步骤 214</span><span class="dim2">${ic('close',16)}</span></div>
+      <div class="dim num" style="font-size:12px;margin-top:4px">07:28:09 · Server Deployment And Fixes</div>
+      <div class="hr" style="margin:18px 0"></div>
+      <div class="lbl">Token 构成</div>
+      <div style="display:flex;height:4px;gap:2px;margin:12px 0 10px"><span style="flex:58412;background:var(--s3);border-radius:2px"></span><span style="flex:7210;background:var(--s1);border-radius:2px"></span><span style="flex:8124;background:var(--s2);border-radius:2px"></span></div>
+      ${[['var(--s3)','缓存命中','58,412'],['var(--s1)','新增输入','7,210'],['var(--s2)','输出','8,124']].map(([c,l,v])=>`<div class="row" style="height:26px;justify-content:space-between"><span style="color:var(--fg-2)">${sw(c)}${l}</span><span class="num">${v}</span></div>`).join('')}
+      <div class="hr" style="margin:18px 0"></div>
+      <div class="row" style="justify-content:space-between"><span class="lbl">上下文占用</span><span class="num dim" style="font-size:12px">65.6K / 1M</span></div>
+      <div style="margin-top:12px">${bar(.066)}</div>
+      <div class="hr" style="margin:18px 0"></div>
+      <div class="row" style="height:28px;justify-content:space-between"><span class="dim">模型</span><span class="row" style="gap:7px">${lg('gemini')}<span class="mono" style="color:var(--fg-2)">gemini-4-neon-high</span></span></div>
+      ${kv('类型','PLANNER_RESPONSE',1)}${kv('生成耗时','83.1 s')}${kv('速度','97 tok/s')}${kv('思考','3,412 tokens')}${kv('工具调用','run_command ×2 · edit_file ×1')}${kv('按 API 价估算','$0.0997')}
+      <div class="row" style="gap:8px;margin-top:auto"><span class="btn" style="flex:1;justify-content:center">${ic('open_in_new',14)}在对话中打开</span><span class="btn">${ic('content_copy',14)}JSON</span></div>
+    </div>
+  </div>`);
+}
+
+/* ================= ⑤ 账号 ================= */
+function scrAccounts(){
+  const A=[['M','#3b5bdb','Ming Mike','lmkbnb1@gmail.com','PRO',500,50000,100,150000,.18,T.real,'cur'],['M','#0f8a5f','Ming','lmkbnb0@gmail.com','PRO',41200,50000,128000,150000,.92,1240000,'3 分钟前'],['S','#c2410c','MK Studio','mk.studio@gmail.com','PRO',18800,50000,62000,150000,.55,3910000,'12 分钟前'],['L','#3f3f46','Lab','lmk.lab@gmail.com','FREE',null,null,null,null,null,0,'exp']];
+  const q=(a,b)=>a==null?`<td class="dim2">—</td>`:`<td><div class="num" style="font-size:12.5px;margin-bottom:7px">${comma(a)} <span class="dim2">/ ${comma(b)}</span></div>${qm(a/b,150)}</td>`;
+  const days=[['11-14',0,0,0],['11-15',0,0,0],['11-16',0,0,0],['11-17',3266113,820000,410000],['11-18',11838480,2140000,960000],['11-19',6159016,1310000,3020000],['11-20',1875805,920000,640000]];
+  return shell(sub('accounts')+`<div class="body">
+    <div class="h"><h3>账号</h3><div class="x"><span class="btn">${ic('add',15)}添加账号</span></div></div>
+    <table class="t"><thead><tr><th style="width:300px">账号</th><th style="width:200px">Prompt 积分</th><th style="width:200px">Flow 积分</th><th style="width:120px">Neon High</th><th class="r">近 24h</th><th class="r" style="width:150px"></th></tr></thead><tbody>
+    ${A.map(([l,c,n,e,p,pa,pb,fa,fb,neon,tok,st])=>`<tr><td style="height:60px"><span class="row" style="gap:12px"><span class="who" style="width:28px;height:28px;font-size:12px;background:${c}">${l}</span><span><span class="row" style="gap:8px">${n}<span class="pill">${p}</span></span><span class="dim" style="font-size:12px;display:block;margin-top:2px">${e}</span></span></span></td>
+      ${q(pa,pb)}${q(fa,fb)}<td>${neon==null?'<span class="dim2">—</span>':`<div style="font-size:12.5px;margin-bottom:7px">${pc(neon)}</div>${qm(neon,72)}`}</td>
+      <td class="r num" style="color:var(--fg-2)">${tok?fmt(tok):'<span class="dim2">—</span>'}</td>
+      <td class="r">${st==='cur'?`<span class="row" style="gap:7px;justify-content:flex-end;color:var(--fg-2);font-size:12px"><i style="width:6px;height:6px;border-radius:50%;background:var(--good)"></i>使用中</span>`:st==='exp'?`<span class="btn">重新登录</span>`:`<span class="row" style="gap:12px;justify-content:flex-end"><span class="dim2" style="font-size:12px">${st}</span><span class="btn">切换</span></span>`}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="cols" style="grid-template-columns:1fr 1fr;margin-top:32px">
+      <div>
+        <div class="h"><h3>合计可用 Prompt 积分</h3><div class="x">3 个有效账号</div></div>
+        <div class="big num" style="margin-top:0">60,500<small>/ 150,000</small></div>
+        <div style="display:flex;height:4px;gap:2px;margin:16px 0 12px"><span class="hit mk" ${tipA('lmkbnb0 · 41,200')} style="flex:41200;background:var(--s1);border-radius:2px"></span><span class="hit mk" ${tipA('mk.studio · 18,800')} style="flex:18800;background:var(--s2);border-radius:2px"></span><span class="hit mk" ${tipA('lmkbnb1 · 500')} style="flex:500;min-width:3px;background:var(--s3);border-radius:2px"></span><span style="flex:89500;background:var(--track);border-radius:2px"></span></div>
+        <div class="lgd num"><span><i style="background:var(--s1)"></i>lmkbnb0 41,200</span><span><i style="background:var(--s2)"></i>mk.studio 18,800</span><span><i style="background:var(--s3)"></i>lmkbnb1 500</span></div>
+        <div class="row" style="margin-top:20px;gap:12px;padding:12px 14px;border:1px solid var(--card-border);border-radius:10px"><span style="flex:1;color:var(--fg-2);line-height:1.6">当前账号 Prompt 积分仅剩 1%。<span style="color:var(--fg)">lmkbnb0</span> 余量最多，切换约需 10 秒，经官方登录流程完成。</span><span class="btn p">切换到 lmkbnb0</span></div>
+      </div>
+      <div>
+        <div class="h"><h3>各账号真实消耗</h3><div class="x"><span class="lgd"><span><i style="background:var(--s1)"></i>lmkbnb1</span><span><i style="background:var(--s2)"></i>lmkbnb0</span><span><i style="background:var(--s3)"></i>mk.studio</span></span></div></div>
+        ${stacked({rows:days.map(d=>({label:d[0],parts:[d[1],d[2],d[3]],tip:`<span class="dim">${d[0]}</span><br>${sw('var(--s1)')}lmkbnb1 ${fmt(d[1])}<br>${sw('var(--s2)')}lmkbnb0 ${fmt(d[2])}<br>${sw('var(--s3)')}mk.studio ${fmt(d[3])}`})),colors:['var(--s1)','var(--s2)','var(--s3)'],w:520,h:200,yMax:16000000,yTicks:[0,4000000,8000000,12000000,16000000],barMax:18})}
+      </div>
+    </div>
+  </div>`);
+}
+
+/* ================= 对话视图（⑥ 辅助面板 / ⑦ 输入框增强 共用） ================= */
+const CHAT=`<div style="align-self:flex-end;background:var(--raised);border-radius:16px;padding:9px 14px;max-width:72%;font-size:14px;line-height:1.55">帮我把 sidecar 的端口发现改成每次启动动态读取，别写死。</div>
+  <div style="font-size:14px;line-height:1.7;color:var(--fg-2);max-width:660px">
+    <div class="dim" style="font-size:12.5px;margin-bottom:8px;display:flex;align-items:center;gap:4px">Worked for 24s${ic('chevron_right',15)}</div>
+    好的。我会在 <code class="mono" style="background:var(--muted);padding:1px 5px;border-radius:4px">main.mjs</code> 启动时读取 <code class="mono" style="background:var(--muted);padding:1px 5px;border-radius:4px">webPort</code>，并在 language_server 重启后自动重连：
+    <div style="background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:12px 0;font-family:var(--mono);font-size:12.5px;line-height:1.7"><span style="color:#8ea8ff">const</span> port = <span style="color:#8ea8ff">await</span> discoverPort(pid);<br><span style="color:#8ea8ff">if</span> (!port) <span style="color:#8ea8ff">return</span> retryLater(<span style="color:#e0a370">3000</span>);<br>rpc.connect(<span style="color:#7fc8a2">\`http://127.0.0.1:\${port}\`</span>, { csrf });</div>
+    已修改 2 个文件。需要我顺便加上 <code class="mono" style="background:var(--muted);padding:1px 5px;border-radius:4px">/healthz</code> 探活吗？
+  </div>`;
+function composer(extra=''){
+  return `<div style="position:relative;margin:0 auto 18px;width:calc(100% - 64px);max-width:760px;border:1px solid var(--card-border);border-radius:20px;padding:14px 14px 10px 16px;background:var(--glass)">
+    <div style="color:var(--fg-4);font-size:14px;height:22px">Ask anything, @ to mention</div>
+    <div class="row" style="margin-top:14px;gap:4px;height:30px">
+      <span class="ctl" style="padding:0 6px">${ic('add',19)}</span>
+      <span class="ctl" style="color:var(--fg-2)">${lg('gemini')}Gemini 4 Neon<span class="dim2">High</span>${ic('keyboard_arrow_down',16)}</span>
+      <span class="sp"></span>${extra}
+      <span class="ctl" style="padding:0 6px">${ic('mic',19)}</span>
+      <span style="width:30px;height:30px;border-radius:50%;background:var(--fg);display:grid;place-items:center;color:#0a0a0c">${ic('arrow_upward',18)}</span>
+    </div></div>`;
+}
+function convShell(paneInner,topRight=''){
+  return `<div class="win">${sidebar('chat')}<div class="main"><div class="topbar"><div class="t" style="padding-left:4px">Neox UI Design Optimization <span class="dim" style="font-weight:400;font-size:12.5px">Neox</span></div><div class="row" style="gap:6px">${topRight}<div class="tbtn">Open IDE</div></div></div><div class="pane" style="flex-direction:row">${paneInner}</div></div></div>`;
+}
+
+/* ================= ⑥ 辅助面板 ================= */
+function scrAux(){
+  const sec=(t,x,b)=>`<div style="padding:18px 20px;border-bottom:1px solid var(--border)"><div class="row" style="justify-content:space-between;margin-bottom:12px"><span class="lbl">${t}</span><span class="num dim2" style="font-size:12px">${x}</span></div>${b}</div>`;
+  const aux=`<div style="width:320px;flex:none;border-left:1px solid var(--border);display:flex;flex-direction:column">
+    <div class="row" style="height:44px;padding:0 14px 0 20px;justify-content:space-between;border-bottom:1px solid var(--border);flex:none"><span style="font-weight:500">Buddy</span><span class="row dim" style="gap:10px">${ic('open_in_new',16)}${ic('close',16)}</span></div>
+    ${sec('上下文','7.9%',`<div class="num" style="font-size:22px;font-weight:500;letter-spacing:-.02em">78.5K<span class="dim2" style="font-size:12.5px;font-weight:400;letter-spacing:0"> / 1M</span></div>
+      <div style="display:flex;height:3px;gap:2px;margin:14px 0 10px"><span style="flex:73905;background:var(--s3);border-radius:2px"></span><span style="flex:4612;min-width:3px;background:var(--s1);border-radius:2px"></span><span style="flex:921483;background:var(--track);border-radius:2px"></span></div>
+      <div class="lgd num"><span><i style="background:var(--s3)"></i>缓存 73.9K</span><span><i style="background:var(--s1)"></i>新增 4.6K</span></div>`)}
+    ${sec('本会话','110 步 · 5h',`<div style="display:grid;grid-template-columns:repeat(3,1fr)">${[['4.73M','新增输入'],['302K','输出'],['81%','缓存命中']].map(([v,k])=>`<div><div class="num" style="font-size:15px;font-weight:500">${v}</div><div class="dim" style="font-size:12px;margin-top:3px">${k}</div></div>`).join('')}</div>`)}
+    ${sec('生成速度','中位 44 tok/s',`<div class="row" style="align-items:flex-end;justify-content:space-between"><span class="num" style="font-size:15px;font-weight:500">18<span class="dim2" style="font-size:12px;font-weight:400"> tok/s</span></span>${spark([44,40,83,55,30,97,78,32,18],190,30,'var(--s1)',false)}</div>`)}
+    ${sec('额度','3h 53m 后重置',[['Gemini 4 Neon · High','gemini',.18,1],['Gemini 4 Neon · XHigh','gemini',.62],['Claude Opus 5.5 · High','claude',.07],['Gemini 4 Hydrogen · High','gemini',.85]].map(([n,p,f,cur])=>`<div class="row" style="height:30px;gap:9px">${lg(p)}<span class="el" style="flex:1;font-size:12.5px;color:${cur?'var(--fg)':'var(--fg-2)'}">${n}</span>${qm(f,52)}<span class="r" style="width:32px;font-size:12.5px">${pc(f)}</span></div>`).join(''))}
+    <div class="row" style="padding:14px 20px;justify-content:space-between;font-size:12.5px"><span class="dim">Prompt 积分</span><span class="num">500 <span class="dim2">/ 50,000</span></span></div>
+  </div>`;
+  return convShell(`<div style="flex:1;min-width:0;display:flex;flex-direction:column"><div style="flex:1;padding:28px 40px;display:flex;flex-direction:column;gap:20px;overflow:hidden">${CHAT}</div>${composer()}</div>${aux}`,
+    `<div class="tbtn" style="background:var(--selected);border-color:transparent">${BLOGO}Buddy</div>`);
+}
+
+/* ================= ⑦ 输入框增强（原生增强 · CDP） ================= */
+function scrComposer(){
+  const chip=(inner,on)=>`<span class="ctl" style="gap:7px;padding:0 8px;color:var(--fg-2);${on?'background:var(--selected)':''}">${inner}</span>`;
+  const cat=[['消息','52.1K',52100,'var(--s1)'],['系统提示','9.8K',9800,'var(--s2)'],['工具定义','12.4K',12400,'var(--s3)'],['Skills','4.2K',4200,'#c98500']];
+  const pop=`<div style="position:absolute;right:212px;bottom:124px;width:304px;background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6),0 2px 8px -2px rgb(0 0 0 / .4);padding:16px 16px 12px">
+      <div class="row" style="justify-content:space-between"><span class="lbl">上下文</span><span class="num dim2" style="font-size:12px">7.9%</span></div>
+      <div class="num" style="font-size:22px;font-weight:500;letter-spacing:-.02em;margin-top:6px">78.5K<span class="dim2" style="font-size:12.5px;font-weight:400;letter-spacing:0"> / 1M</span></div>
+      <div style="display:flex;height:4px;gap:2px;margin:14px 0 12px">${cat.map(c=>`<span style="flex:${c[2]};background:${c[3]};border-radius:2px"></span>`).join('')}<span style="flex:921500;background:var(--track);border-radius:2px"></span></div>
+      ${cat.map(c=>`<div class="row" style="height:26px;justify-content:space-between;font-size:12.5px"><span style="color:var(--fg-2)">${sw(c[3])}${c[0]}</span><span class="num">${c[1]}</span></div>`).join('')}
+      <div class="row" style="height:26px;justify-content:space-between;font-size:12.5px"><span class="dim">${sw('rgb(255 255 255 / .14)')}可用</span><span class="num dim">921.5K</span></div>
+      <div style="height:1px;background:var(--border);margin:10px 0 6px"></div>
+      <div class="row" style="height:26px;justify-content:space-between;font-size:12.5px"><span class="dim">上一步输入</span><span class="num" style="color:var(--fg-2)">缓存 73.9K · 新增 4.6K</span></div>
+      <div class="row" style="height:26px;justify-content:space-between;font-size:12.5px"><span class="dim">已压缩</span><span class="num" style="color:var(--fg-2)">0 次</span></div>
+    </div>`;
+  const extra=chip(`${ring(.079,15,'var(--fg-2)')}<span class="num">78.5K</span>`,1)+chip(`${ic('speed',16)}<span class="num">44 <span class="dim2">tok/s</span></span>`)+chip(`${qm(.18,22)}<span class="num">18%</span>`);
+  return convShell(`<div style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative"><div style="flex:1;padding:28px 0;display:flex;flex-direction:column;gap:20px;overflow:hidden;width:calc(100% - 64px);max-width:760px;margin:0 auto">${CHAT}</div>
+    <div style="position:relative">${composer(extra)}<div style="position:absolute;inset:0;width:calc(100% - 64px);max-width:760px;margin:0 auto;pointer-events:none">${pop}</div></div></div>`);
+}
+
+/* ================= ⑧ 设置 ================= */
+function scrSettings(){
+  const tg=on=>`<span style="width:30px;height:18px;border-radius:9px;background:${on?'var(--primary)':'rgb(255 255 255 / .14)'};position:relative;flex:none;display:block"><span style="position:absolute;top:2px;${on?'right:2px':'left:2px'};width:14px;height:14px;border-radius:50%;background:#fff"></span></span>`;
+  const ln=(t,d,c,ind)=>`<div class="row" style="min-height:52px;padding:8px 0 8px ${ind?28:0}px;justify-content:space-between;gap:24px;border-bottom:1px solid var(--border)"><div><div>${t}</div>${d?`<div class="dim" style="font-size:12px;margin-top:3px">${d}</div>`:''}</div>${c}</div>`;
+  const hd=(t,d)=>`<div style="margin:26px 0 6px"><div style="font-size:14px;font-weight:500">${t}</div>${d?`<div class="dim" style="font-size:12px;margin-top:4px">${d}</div>`:''}</div>`;
+  return shell(sub('settings')+`<div class="body" style="display:flex;gap:56px;padding-top:6px">
+    <div style="width:150px;flex:none;padding-top:22px">${['通用','提醒','原生增强','数据','关于'].map((s,i)=>`<div class="row" style="height:30px;padding:0 10px;border-radius:7px;margin-bottom:2px;${i===0?'background:var(--selected)':'color:var(--fg-3)'}">${s}</div>`).join('')}</div>
+    <div style="flex:1;max-width:680px">
+      ${hd('通用')}
+      ${ln('主题','','<div class="seg"><span class="on">跟随 Antigravity</span><span>深色</span><span>浅色</span></div>')}
+      ${ln('积分显示','','<div class="seg"><span class="on">500 / 50,000</span><span>1%</span></div>')}
+      ${ln('估算成本','按公开 API 价格换算，仅供参考，Antigravity 不按此计费',tg(true))}
+      ${hd('提醒')}
+      ${ln('模型额度低于','仅对正在使用的模型发送系统通知','<div class="seg"><span>10%</span><span class="on">20%</span><span>30%</span></div>')}
+      ${ln('预计在重置前用完','按近 3 小时速率预测',tg(true))}
+      ${hd('原生增强','通过本机调试接口把控件放进 Antigravity 的输入框。默认关闭。')}
+      ${ln('启用原生增强','需以调试模式重启 Antigravity；开启期间本机其他程序也能连接该接口',tg(true))}
+      ${ln('上下文圆环','',tg(true),1)}
+      ${ln('生成速度','',tg(true),1)}
+      ${ln('当前模型额度','',tg(true),1)}
+      ${hd('数据')}
+      <div class="cols" style="grid-template-columns:repeat(4,1fr);gap:32px;margin-top:14px">${[['已入库会话','19'],['记录','1,259'],['数据库','4.2 MB'],['上次同步','12 秒前']].map(([k,v])=>`<div><div class="lbl">${k}</div><div class="num" style="font-size:15px;font-weight:500;margin-top:6px">${v}</div></div>`).join('')}</div>
+    </div>
+  </div>`);
+}
+
+/* ================= 渲染 ================= */
+const SCREENS=[
+ ['overview','概览','积分绝对值、24h 消耗、最紧张的模型、耗尽预测',scrOverview],
+ ['quota','额度','按推理强度排成矩阵，一行一个模型系列',scrQuota],
+ ['tokens','用量','真实消耗与缓存复用分开；模型、时段、命中率',scrTokens],
+ ['ledger','明细','逐步记录，右侧为所选步骤的检查器',scrLedger],
+ ['accounts','账号','多账号额度并列，合计余量与切换',scrAccounts],
+ ['aux','辅助面板','对话右侧，官方插件面板',scrAux],
+ ['composer','输入框增强','原生增强（CDP）开启后，输入框内的三个控件与上下文浮层',scrComposer],
+ ['settings','设置','原生增强为独立开关，默认关闭',scrSettings],
+];
+const q=new URLSearchParams(location.search).get('s');
+const list=q?SCREENS.filter(s=>s[0]===q):SCREENS;
+if(q)document.body.classList.add('single');
+document.getElementById('gnav').innerHTML=SCREENS.map((s,i)=>`<a href="#${s[0]}">${hh(i+1)} ${s[1]}</a>`).join('');
+document.getElementById('shots').innerHTML=list.map(s=>`<section class="shot" id="${s[0]}"><div class="shot-cap"><b>${hh(SCREENS.indexOf(s)+1)}</b><h2>${s[1]}</h2><span>${s[2]}</span></div>${s[3]()}</section>`).join('');
+const tip=document.getElementById('tip');
+document.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');if(!t||!t.dataset.tip){tip.style.display='none';return;}
+  tip.innerHTML=t.dataset.tip;tip.style.display='block';
+  tip.style.left=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=(e.clientY+14+tip.offsetHeight>innerHeight?e.clientY-tip.offsetHeight-10:e.clientY+14)+'px';});
+</script>
+</body>
+</html>

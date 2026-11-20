@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+# 其他工具的工作目录
+.rea/
+.neox/

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AntigravityBuddy · 可交互原型 v4</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@font-face{font-family:"Google Sans Flex";src:url(assets/gsflex-latin.woff2) format("woff2");font-weight:100 1000;font-stretch:92% 100%;font-display:block}
+@font-face{font-family:"Google Sans Code";src:url(assets/gscode-latin.woff2) format("woff2");font-weight:300 800;font-display:block}
+@font-face{font-family:"Material Symbols Outlined";src:url(assets/symbols.woff2) format("woff2");font-weight:300;font-display:block}
+/* 中文适配：Antigravity 的正文字重是 350，直接落到苹方会选成「细体」。这里把 350/450/550 分别对到 常规/中黑/中粗 */
+@font-face{font-family:"Buddy CJK";src:local("PingFang SC Regular"),local("PingFangSC-Regular");font-weight:100 420;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE30-FE4F,U+FF00-FFEF,U+3000-303F}
+@font-face{font-family:"Buddy CJK";src:local("PingFang SC Medium"),local("PingFangSC-Medium");font-weight:421 520;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE30-FE4F,U+FF00-FFEF,U+3000-303F}
+@font-face{font-family:"Buddy CJK";src:local("PingFang SC Semibold"),local("PingFangSC-Semibold");font-weight:521 1000;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE30-FE4F,U+FF00-FFEF,U+3000-303F}
+
+/* ===== Tokens：Antigravity 2.33 onyx 暗色主题 + Google Sans Flex 排版规则（均读自运行时） ===== */
+:root{
+  color-scheme:dark;
+  --background:#070708; --shell:#111114; --glass:#131317; --raised:#15151A; --well:#0D0D11;
+  --selected:rgb(255 255 255 / .09); --hover:rgb(255 255 255 / .048); --muted:rgb(255 255 255 / .042);
+  --secondary:rgb(255 255 255 / .075); --secondary-h:rgb(255 255 255 / .115);
+  --border:rgb(255 255 255 / .06); --card-border:rgb(255 255 255 / .08); --glass-border:rgb(255 255 255 / .085); --track:rgb(255 255 255 / .08);
+  --fg:#FFFFFF; --fg-2:#BCBDC6; --fg-3:#87888F; --fg-4:#636470;
+  --primary:#2F71E3; --link:#7AA7F5; --primary-wash:rgb(47 113 227 / .16);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --warn:#fab219; --crit:#d03b3b; --good:#0ca30c;
+  --grid:rgb(255 255 255 / .05); --axis:rgb(255 255 255 / .14);
+  --font:"Google Sans Flex","Buddy CJK","Google Sans",system-ui,-apple-system,"PingFang SC",sans-serif;
+  --mono:"Google Sans Code",ui-monospace,"SF Mono",Menlo,monospace;
+  --w-normal:350; --w-medium:450; --w-semi:550;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.43;font-weight:var(--w-normal);font-variation-settings:"ROND" 0,"slnt" 0,"wdth" 92;font-variant-ligatures:no-contextual;-webkit-font-smoothing:antialiased}
+body{padding:28px 0 60px}
+h1,h2,.t1{font-variation-settings:"ROND" 20,"slnt" 0,"wdth" 100;font-weight:var(--w-semi)}
+h3,h4,.t3{font-variation-settings:"ROND" 20,"slnt" 0,"wdth" 94;font-weight:var(--w-semi)}
+b,strong{font-weight:var(--w-semi)}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:.9em;font-variation-settings:normal;font-weight:400}
+.ms{font-family:"Material Symbols Outlined";font-weight:300;font-style:normal;font-variation-settings:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-feature-settings:"liga";font-feature-settings:"liga";font-size:18px;vertical-align:middle;flex:none;user-select:none}
+img.lg{width:15px;height:15px;display:block;flex:none}
+.stage{width:1440px;margin:0 auto}
+.note{color:var(--fg-3);font-size:13px;line-height:1.7;margin:0 4px 16px;display:flex;justify-content:space-between;gap:40px}
+.note b{color:var(--fg-2)}
+body.single{padding:0}body.single .note{display:none}body.single .win{border-radius:0;box-shadow:none}
+
+/* ===== 外壳 ===== */
+.win{width:1440px;height:900px;background:var(--shell);border-radius:12px;overflow:hidden;display:grid;grid-template-columns:268px 1fr;box-shadow:0 0 0 1px rgb(255 255 255 / .09),0 40px 90px rgb(0 0 0 / .7);position:relative}
+.side{display:flex;flex-direction:column;padding:0 8px 8px;min-width:0}
+.tl{height:42px;display:flex;align-items:center;gap:8px;padding-left:10px;flex:none}
+.tl i{width:12px;height:12px;border-radius:50%}
+.tl i:nth-child(1){background:#ff5f57}.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+.tl .ic{margin-left:22px;display:flex;gap:14px;color:var(--fg-3)}
+.newc{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--card-border);border-radius:8px;background:var(--muted);margin:0 0 8px}
+.nv{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;border-radius:8px;color:var(--fg-2)}
+.nv .ms{color:var(--fg-3)}
+.nv.on{background:var(--selected);color:var(--fg)}
+.nh{display:flex;justify-content:space-between;align-items:center;color:var(--fg-3);font-size:12px;padding:20px 10px 6px}
+.nh .ms{font-size:16px}
+.pj{display:flex;align-items:center;gap:9px;height:32px;padding:0 10px;color:var(--fg-3)}
+.cv{display:flex;justify-content:space-between;align-items:center;height:32px;padding:0 10px 0 37px;border-radius:8px;color:var(--fg-2)}
+.cv span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:178px}
+.cv em{font-style:normal;color:var(--fg-4);font-size:12px}
+.cv .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:3px}
+.side .foot{margin-top:auto}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.side{min-height:0;overflow:hidden}
+.topbar{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 8px;flex:none}
+.topbar .t{display:flex;align-items:center;gap:8px}
+.tbtn{border:1px solid var(--card-border);border-radius:8px;height:26px;padding:0 10px;font-size:13px;display:flex;align-items:center;gap:6px;color:var(--fg-2)}
+.pane{flex:1;margin:0 8px 8px 0;background:var(--background);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.blogo{width:18px;height:18px;border-radius:5px;background:var(--primary-wash);display:grid;place-items:center;flex:none}
+
+/* ===== 页内导航 ===== */
+.sub{height:48px;flex:none;display:flex;align-items:stretch;justify-content:space-between;padding:0 32px;border-bottom:1px solid var(--border)}
+.tabs{display:flex;gap:24px}
+.tabs a{display:flex;align-items:center;color:var(--fg-3);position:relative}
+.tabs a:hover{color:var(--fg-2)}
+.tabs a.on{color:var(--fg);font-weight:var(--w-medium)}
+.tabs a.on:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1.5px;background:var(--fg)}
+.sub-r{display:flex;align-items:center;gap:6px}
+.who{width:18px;height:18px;border-radius:50%;background:#3b5bdb;display:grid;place-items:center;font-size:10px;font-weight:600;flex:none;font-variation-settings:normal}
+.sync{display:flex;align-items:center;gap:7px;color:var(--fg-3);font-size:12px;padding:0 8px}
+.sync i{width:6px;height:6px;border-radius:50%;background:var(--good)}
+.vsep{width:1px;height:16px;background:var(--border);margin:0 4px}
+.body{flex:1;min-height:0;overflow:hidden auto;padding:28px 32px;scrollbar-width:thin;scrollbar-color:rgb(255 255 255 / .12) transparent}
+.hr{height:1px;background:var(--border);margin:24px 0}
+.cols{display:grid;gap:48px}
+
+/* ===== 控件：照 Antigravity 设置页的做法 —— 填充而不是描边 ===== */
+.ctl{display:flex;align-items:center;gap:6px;height:28px;padding:0 9px;border-radius:8px;color:var(--fg-2);font-size:13px;white-space:nowrap}
+.ctl.b{background:var(--secondary);color:var(--fg)}
+.ctl .ms{font-size:16px;color:var(--fg-3)}
+.ctl[data-a]:hover{background:var(--hover)}.ctl.b[data-a]:hover{background:var(--secondary-h)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:8px;background:var(--secondary);font-size:13px;font-weight:var(--w-medium);color:var(--fg);white-space:nowrap}
+.btn:hover{background:var(--secondary-h)}
+.btn .ms{font-size:16px;color:var(--fg-2);margin-left:-2px}
+.btn.p{background:var(--primary);color:#fff}.btn.p:hover{background:#3d7eee}
+.btn.q{background:none;color:var(--fg-2)}.btn.q:hover{background:var(--hover)}
+.seg{display:inline-flex;border:1px solid var(--card-border);border-radius:10px;padding:2px;gap:2px}
+.seg span{padding:0 10px;font-size:13px;color:var(--fg-3);border-radius:7px;line-height:24px;white-space:nowrap}
+.seg span:hover{color:var(--fg-2)}
+.seg span.on{background:rgb(255 255 255 / .1);color:var(--fg);font-weight:var(--w-medium)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--card-border);font-size:13px;color:var(--fg-3);white-space:nowrap}
+.chip:hover{color:var(--fg-2);background:var(--hover)}
+.chip.on{background:var(--primary-wash);border-color:rgb(47 113 227 / .5);color:var(--fg)}
+.pill{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:4px;background:var(--secondary);color:var(--fg-3);font-size:11px;font-weight:var(--w-medium);letter-spacing:.02em}
+.pill.blue{background:var(--primary-wash);color:var(--link)}
+.inp{display:flex;align-items:center;gap:6px;height:28px;padding:0 9px;border-radius:8px;background:var(--muted);color:var(--fg-3);border:1px solid transparent}
+.inp input{background:none;border:0;outline:0;color:var(--fg);font:inherit;font-size:13px;width:150px}
+.inp input::placeholder{color:var(--fg-4)}
+.inp:focus-within{border-color:rgb(47 113 227 / .6);background:none}
+.sw{width:32px;height:18px;border-radius:9px;background:rgb(255 255 255 / .16);position:relative;flex:none;display:block;transition:background .15s}
+.sw:after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.sw.on{background:var(--primary)}.sw.on:after{left:16px}
+.lnk{color:var(--link)}.lnk:hover{text-decoration:underline}
+kbd{font-family:var(--font);font-size:11px;color:var(--fg-3);background:var(--secondary);border-radius:4px;padding:0 5px;line-height:17px}
+/* 设置页的分组容器（与 Antigravity 设置一致：一组一个圆角框，行间细线） */
+.grp{border:1px solid var(--card-border);border-radius:12px;overflow:hidden}
+.gr{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:12px 16px;min-height:56px}
+.gr + .gr{border-top:1px solid var(--border)}
+.gr .d{color:var(--fg-3);font-size:13px;margin-top:2px}
+.gr.sub2{padding-left:40px;min-height:46px}
+.gr.off{opacity:.4;pointer-events:none}
+
+/* ===== 排版原语 ===== */
+.lbl{font-size:13px;color:var(--fg-3);display:flex;align-items:center;gap:6px;height:18px}
+.big{font-size:27px;font-weight:var(--w-medium);letter-spacing:-.01em;line-height:1.15;margin-top:8px}
+.big small{font-size:14px;font-weight:var(--w-normal);color:var(--fg-4);letter-spacing:0;margin-left:3px}
+.cap{font-size:12.5px;color:var(--fg-3);margin-top:8px}
+.h{display:flex;align-items:center;justify-content:space-between;height:22px;margin-bottom:14px}
+.h h3{font-size:14.5px}
+.h .x{font-size:12.5px;color:var(--fg-3);display:flex;align-items:center;gap:12px}
+.lk{color:var(--fg-2);display:inline-flex;align-items:center;gap:2px}.lk:hover{color:var(--fg)}
+.lk .ms{font-size:15px}
+.lgd{display:flex;gap:14px;font-size:12.5px;color:var(--fg-3)}
+.lgd i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:6px}
+.row{display:flex;align-items:center}.sp{flex:1}.r{text-align:right}
+.el{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dim{color:var(--fg-3)}.dim2{color:var(--fg-4)}
+svg text{font-family:var(--font);font-variation-settings:"wdth" 92}
+.tip{position:fixed;pointer-events:none;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;font-size:12.5px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6),0 2px 8px -2px rgb(0 0 0 / .4);z-index:99;display:none;white-space:nowrap;line-height:1.65}
+.hit:hover .mk{opacity:.8}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{font-weight:var(--w-normal);color:var(--fg-3);font-size:12.5px;text-align:left;height:32px;padding:0 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.t td{height:38px;padding:0 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.t th.r,table.t td.r{text-align:right}
+table.t th:first-child,table.t td:first-child{padding-left:0}
+table.t th:last-child,table.t td:last-child{padding-right:0}
+table.t th[data-a]:hover{color:var(--fg-2)}
+table.t tbody tr[data-a]:hover td{background:var(--hover)}
+table.t tr.sel td,table.t tbody tr.sel:hover td{background:var(--selected)}
+
+/* ===== 交互 ===== */
+[data-a]{cursor:pointer}
+.nv[data-a]:hover,.cv[data-a]:hover{background:var(--hover)}
+.rowh{border-radius:6px;margin:0 -8px;padding:0 8px}.rowh:hover{background:var(--hover)}
+.stat{border-radius:10px;margin:-10px -12px;padding:10px 12px;position:relative}
+.stat[data-a]:hover{background:var(--hover)}
+.stat .go{position:absolute;right:10px;top:10px;color:var(--fg-4);opacity:0}.stat:hover .go{opacity:1}
+.stat.on:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:1.5px;background:var(--fg)}
+.menu{position:absolute;z-index:50;min-width:220px;max-height:340px;overflow:auto;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6),0 2px 8px -2px rgb(0 0 0 / .4);padding:4px}
+.menu .mi{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:6px;font-size:13px;color:var(--fg-2);white-space:nowrap}
+.menu .mi:hover{background:var(--hover);color:var(--fg)}
+.menu .mi .ck{margin-left:auto;color:var(--fg);padding-left:16px}
+.menu .mh{font-size:12px;color:var(--fg-4);padding:8px 8px 4px}
+.scroll{overflow:auto;scrollbar-width:thin;scrollbar-color:rgb(255 255 255 / .12) transparent}
+.spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.ins{display:flex;gap:12px;align-items:flex-start;padding:10px 8px;margin:0 -8px;border-radius:8px}
+.ins:hover{background:var(--hover)}
+.ins .ms{color:var(--fg-3);margin-top:1px}
+.ins .go{margin-left:auto;color:var(--fg-4);opacity:0}.ins:hover .go{opacity:1}
+</style>
+</head>
+<body>
+<div class="tip" id="tip"></div>
+<div class="stage">
+  <div class="note"><span><b>AntigravityBuddy · 可交互原型 v4</b>　字体、字重、控件样式照 Antigravity 2.33 运行时规则。页签、筛选、排序、表格行、图表柱子、侧栏会话、输入框控件、设置各分页都可以点。用量数据为本机实测；模型额度比例与其余账号为演示数据。</span><span style="white-space:nowrap">上一版：buddy-design-v3.html</span></div>
+  <div id="app"></div>
+</div>
+<script src="assets/usage-data.js"></script>
+<script src="app/core.js"></script>
+<script src="app/overview.js"></script>
+<script src="app/tokens.js"></script>
+<script src="app/quota.js"></script>
+<script src="app/ledger.js"></script>
+<script src="app/misc.js"></script>
+<script src="app/accounts.js"></script>
+<script src="app/settings.js"></script>
+<script src="app/main.js"></script>
+</body>
+</html>
