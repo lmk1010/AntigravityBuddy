@@ -18,6 +18,7 @@ app.api('/api/accounts/remove', data => removeAccount(data?.email), 'POST');
 app.api('/api/native', data => setNative(data || {}), 'POST');
 app.api('/api/relaunch', () => relaunchDebug(), 'POST');
 const STATIC = { '/': ['index.html', 'text/html; charset=utf-8'], '/app.js': ['app.js', 'application/javascript; charset=utf-8'], '/styles.css': ['styles.css', 'text/css; charset=utf-8'] };
+for (const f of ['hero-light', 'hero-dark', 'accounts-light', 'accounts-dark']) app.page(`/illus/${f}.jpg`, () => { try { return new Response(readFileSync(join(dir, 'illus', f + '.jpg')), { contentType: 'image/jpeg', headers: { 'Cache-Control': 'max-age=86400' } }); } catch { return new Response('', { status: 404 }); } });
 for (const [path, [file, type]] of Object.entries(STATIC)) app.page(path, () => new Response(readFileSync(join(dir, file), 'utf-8'), { contentType: type, headers: { 'Cache-Control': 'no-store' } }));
 startNative();
 app.run();

@@ -201,7 +201,7 @@ const G3 = { gemini: ['#4C8DF6', '#8E7CF6', '#C76BD9'], claude: ['#D97757', '#E8
 const PAL = ['#5B9BFF', '#9D8CFF', '#4FC3D9', '#F2B35B', '#F27A9B', '#7FD6A0'];
 const grayG = () => isLight() ? ['#D5D6DC', '#DCDDE2', '#E3E4E8'] : ['#3A3B42', '#43444B', '#4C4D54'];
 const winG = w => w.kind === '每周' ? G3.week : w.provs.has('gemini') ? G3.gemini : G3.claude;
-const tiles = logos => `<span class="tile">${logos.map(l => `<img src="${LOGO[l]}" style="width:22px;height:22px;display:block">`).join('')}</span>`;
+const tiles = logos => `<span class="lgs">${logos.map(l => `<img src="${LOGO[l]}" style="width:22px;height:22px;display:block">`).join('')}</span>`;
 const winLogos = w => [...w.provs].sort((a, b) => a === 'claude' ? -1 : 1);
 let _cid = 0;
 // 渐变胶囊：f = 填充比例；win = 窗口时间（小三角）
@@ -308,7 +308,7 @@ function landscape(bs, rs, W, H = 330) {
       <text x="${a0 + 2 * ar - 4}" y="${G - 22}" text-anchor="end" style="fill:var(--fg-2);font-size:12px">${winAt(k5)} 重置</text><text x="${a0 + 4}" y="${G - 22}" style="fill:var(--fg-4);font-size:12px">${atLocal(t0)}</text>`;
   }
   let stars = ''; if (!L2) { let sd = 7; const rnd = () => (sd = (sd * 9301 + 49297) % 233280) / 233280; for (let i = 0; i < 46; i++) stars += `<circle cx="${(rnd() * W * .78 + 20).toFixed(0)}" cy="${(rnd() * 150 + 8).toFixed(0)}" r="${(rnd() + .4).toFixed(1)}" fill="#fff" opacity="${(rnd() * .35 + .08).toFixed(2)}"/>`; }
-  const pk = tot.indexOf(Math.max(...tot)), px = X(pk), py = G - smooth(inp, n > 30 ? 1.1 : .8)[pk] / mx * sc - 4;
+  const pk = tot.indexOf(Math.max(...tot)), px = X(pk), py = G - smooth(inp, n > 30 ? 1.1 : .8)[pk] / mx * sc - 4; const ly = Math.max(178, py - 36), l0 = Math.max(188, py - 46);
   const C = L2 ? { f0: '#7FB0FF', f1: .22, m1: '#D6E6FF', o1: '#FFE9CF', m2: .5, o2: .6 } : { f0: '#5B9BFF', f1: .16, m1: '#2F5FB8', o1: '#D95926', m2: .25, o2: .35 };
   const every = Math.max(1, Math.ceil(n / 6)), labels = bs.map((b, i) => i % every === 0 && i ? `<text x="${X(i)}" y="${H - 6}" text-anchor="middle">${b.label}${b.label.length <= 2 ? ':00' : ''}</text>` : '').join('');
   const hits = bs.map((b, i) => `<rect class="hb" x="${(i / n * W).toFixed(1)}" y="0" width="${(W / n).toFixed(1)}" height="${G}" fill="transparent" ${tipA(`<span class="dim">${b.long}</span><br>${sw('#5B9BFF')}新增输入 ${fmt(g[i].in)}<br>${sw('#F2B35B')}输出 ${fmt(g[i].out)}${g[i].n ? `<br><span class="dim">缓存命中 ${Math.round(pct(g[i].cache, g[i].cache + g[i].in) * 100)}% · ${g[i].n} 次 · 约 ${fUSD(g[i].cost)} · 点击查看明细</span>` : ''}`)} ${g[i].n ? A('bucket', b.a + ',' + b.b) : ''}/>`).join('');
@@ -317,9 +317,8 @@ function landscape(bs, rs, W, H = 330) {
     <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5B9BFF" stop-opacity=".92"/><stop offset="1" stop-color="${C.m1}" stop-opacity="${C.m2}"/></linearGradient>
     <linearGradient id="fr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L2 ? '#F7B267' : '#F2B35B'}" stop-opacity=".95"/><stop offset="1" stop-color="${C.o1}" stop-opacity="${C.o2}"/></linearGradient>
     <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFE6B0"/><stop offset=".35" stop-color="#F2B35B" stop-opacity=".9"/><stop offset="1" stop-color="#F2B35B" stop-opacity="0"/></radialGradient></defs>
-    ${stars}${sun}
-    <path d="${ridge(tot, 1.25)}" fill="url(#far)"/><path d="${ridge(inp, 1)}" fill="url(#mid)"/><path d="${ridge(out.map(v => v * 2.2), 1)}" fill="url(#fr)"/>
-    ${tot[pk] > 0 ? `<line x1="${px}" x2="${px}" y1="${py - 46}" y2="${py}" style="stroke:${ink(.35)}"/><text x="${px > W - 180 ? px - 8 : px + 8}" y="${py - 36}" text-anchor="${px > W - 180 ? 'end' : 'start'}" style="fill:var(--fg-2);font-size:12px">峰值 ${fmt(tot[pk])} · ${bs[pk].long.split(' ').pop().split('–')[0]}</text>` : `<text x="${W / 2}" y="${G / 2}" text-anchor="middle" style="fill:var(--fg-4);font-size:13px">这段时间没有调用</text>`}
+    <path d="${ridge(inp, 1)}" fill="url(#mid)" opacity=".82"/><path d="${ridge(out.map(v => v * 2.2), 1)}" fill="url(#fr)"/>
+    ${tot[pk] > 0 ? `<line x1="${px}" x2="${px}" y1="${l0}" y2="${py}" style="stroke:${ink(.35)}"/><text x="${px > W - 180 ? px - 8 : px + 8}" y="${ly}" text-anchor="${px > W - 180 ? 'end' : 'start'}" style="fill:var(--fg-2);font-size:12px">峰值 ${fmt(tot[pk])} · ${bs[pk].long.split(' ').pop().split('–')[0]}</text>` : `<text x="${W / 2}" y="${G / 2}" text-anchor="middle" style="fill:var(--fg-4);font-size:13px">这段时间没有调用</text>`}
     <line x1="0" x2="${W}" y1="${G}" y2="${G}" style="stroke:${ink(.16)}"/>
     <text x="0" y="${H - 6}">${bs[0].long.split('–')[0]}</text>${labels}
     ${hits}</svg>`;
@@ -347,7 +346,7 @@ function cacheLine(bs, rs, W, H = 104) {
   if (pts.length < 2) return `<div class="cap" style="height:${H}px;display:grid;place-items:center">数据不足</div>`;
   const d = curve(pts), e = pts[pts.length - 1];
   return `<svg width="${W - 64}" height="${H}" style="display:block;overflow:visible;font-size:11.5px"><defs><linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4FC3D9" stop-opacity=".28"/><stop offset="1" stop-color="#4FC3D9" stop-opacity="0"/></linearGradient></defs>
-    <line x1="0" x2="${W - 56}" y1="${Y(avg)}" y2="${Y(avg)}" style="stroke:${ink(.22)}" stroke-dasharray="2 4"/><text x="${W - 60}" y="${Y(avg) - 6}" text-anchor="end" style="fill:var(--fg-4)">平均 ${pctS(avg)}</text>
+    <line x1="0" x2="${W - 56}" y1="${Y(avg)}" y2="${Y(avg)}" style="stroke:${ink(.22)}" stroke-dasharray="2 4"/>${Math.abs(Y(avg) - e[1]) > 18 ? `<text x="${W - 70}" y="${Y(avg) - 6}" text-anchor="end" style="fill:var(--fg-4)">平均 ${pctS(avg)}</text>` : `<text x="0" y="${Y(avg) - 6}" style="fill:var(--fg-4)">平均 ${pctS(avg)}</text>`}
     <path d="${d}L${e[0]},${H}L${pts[0][0]},${H}Z" fill="url(#cl)"/><path d="${d}" fill="none" stroke="#4FC3D9" stroke-width="2"/>
     <circle cx="${e[0]}" cy="${e[1]}" r="4.5" fill="#4FC3D9" style="stroke:var(--background)" stroke-width="2.5"/>
     ${rh != null ? `<text x="${e[0] + 12}" y="${e[1] + 5}" style="fill:var(--fg);font-size:15px;font-weight:450">${pctS(rh)}</text><text x="${e[0] + 12}" y="${e[1] + 22}" style="fill:var(--fg-4)">近 6h</text>` : ''}</svg>`;
@@ -355,8 +354,8 @@ function cacheLine(bs, rs, W, H = 104) {
 function vOverview() {
   const rs = rowsIn(), t = agg(rs), bs = buckets(), hit = pct(t.cache, t.cache + t.in), W = CW();
   const ss = groupBy(rs, 'root').sort((x, y) => y.in + y.out - x.in - x.out), real = t.in + t.out;
-  return shell(sub(filters()) + `<div class="body h2"><div class="pg">${aura()}
-    <section class="rw" style="height:330px"><div class="md" style="grid-column:1/-1">${landscape(bs, rs, W)}
+  return shell(sub(filters()) + `<div class="body h2"><div class="pg">
+    <section class="rw hero-sec" style="height:330px"><img class="hero-img" src="/illus/hero-${isLight() ? 'light' : 'dark'}.jpg" alt=""><div class="md" style="grid-column:1/-1">${landscape(bs, rs, W)}
       <div class="hero-t" ${A('metric', 'real')}><div class="lb">${rangeLabel()} · Tokens</div><div class="herov num">${unit(fmt(real))}</div><div class="sub2 num">约 ${fUSD(t.cost)} · 输入 ${fmt(t.in)} · 输出 ${fmt(t.out)} · ${comma(t.n)} 次调用</div></div></div></section>
     ${poolRow()}
     <section class="rw">
@@ -844,12 +843,12 @@ function vAccounts() {
     <section class="rw">
       <div class="md" style="grid-column:span 5">
         <div class="lb">当前账号</div>
-        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${planTag(a)}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
+        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${LIVE.status?.plan ? `<span class="pill plan pro">${esc(LIVE.status.plan)}</span>` : ''}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
         ${WINS.map((w, k) => { const v = poolView(k); return `<div class="cr num"><span class="row" style="gap:6px">${winLogos(w).map(l => `<img src="${LOGO[l]}" style="width:14px;height:14px">`).join('')}${w.kind} · ${w.who}</span><b>${v.x.ok ? `剩 ${fUSD(v.x.leftCost)}` : pctS(v.x.f)}<span style="color:var(--fg-4)"> · ${winAt(k)}</span></b></div><div ${tipA(v.tip)}>${capsule(v.x.f, v.x.f < 1 ? winG(w) : grayG(), W5, 12)}</div>`; }).join('') || '<div class="cap">读不到模型额度</div>'}
       </div>
       <div class="md" style="grid-column:7 / span 6;position:relative">
         <div class="hd"><span class="lb">其他账号 · 点切换会重启 Antigravity</span><span class="lk" style="font-size:12.5px" ${A('accAsk', '+')}>${ic('add', 15)}添加账号</span></div>
-        ${others.length ? others.map(e => accRow(e)).join('') : `<div class="cap" style="margin-top:14px;line-height:1.7">还没有其他账号。点「添加账号」，Antigravity 会重启到登录页，登录另一个 Google 账号后 Buddy 会自动记下它，之后一键切换。</div>`}
+        ${others.length ? others.map(e => accRow(e)).join('') : `<div class="acc-empty"><img src="/illus/accounts-${isLight() ? 'light' : 'dark'}.jpg" alt=""><div><div style="font-size:17px;font-weight:450">把常用的账号都放进来</div><ol style="margin-top:14px"><li>点「添加账号」，Antigravity 重启到登录页</li><li>用另一个 Google 账号登录</li><li>回到这里，一键切换，不用再输密码</li></ol><span class="btn2 p" style="margin-top:18px" ${A('accAsk', '+')}>${ic('add', 15)}添加账号</span></div></div>`}
         ${accPop()}
         <div class="ur" style="border:0;height:auto;margin-top:22px;gap:24px">${u.map(([l, g]) => `<div><div class="lb">${l}</div><div class="kn num" style="font-size:22px;margin-top:6px">${fUSD(g.cost)}</div><div class="num dim" style="font-size:12px;margin-top:4px">${fmt(g.in + g.out)} · ${comma(g.n)} 次</div></div>`).join('')}</div>
       </div>

@@ -59,12 +59,12 @@ function vAccounts() {
     <section class="rw">
       <div class="md" style="grid-column:span 5">
         <div class="lb">当前账号</div>
-        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${planTag(a)}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
+        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${LIVE.status?.plan ? `<span class="pill plan pro">${esc(LIVE.status.plan)}</span>` : ''}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
         ${WINS.map((w, k) => { const v = poolView(k); return `<div class="cr num"><span class="row" style="gap:6px">${winLogos(w).map(l => `<img src="${LOGO[l]}" style="width:14px;height:14px">`).join('')}${w.kind} · ${w.who}</span><b>${v.x.ok ? `剩 ${fUSD(v.x.leftCost)}` : pctS(v.x.f)}<span style="color:var(--fg-4)"> · ${winAt(k)}</span></b></div><div ${tipA(v.tip)}>${capsule(v.x.f, v.x.f < 1 ? winG(w) : grayG(), W5, 12)}</div>`; }).join('') || '<div class="cap">读不到模型额度</div>'}
       </div>
       <div class="md" style="grid-column:7 / span 6;position:relative">
         <div class="hd"><span class="lb">其他账号 · 点切换会重启 Antigravity</span><span class="lk" style="font-size:12.5px" ${A('accAsk', '+')}>${ic('add', 15)}添加账号</span></div>
-        ${others.length ? others.map(e => accRow(e)).join('') : `<div class="cap" style="margin-top:14px;line-height:1.7">还没有其他账号。点「添加账号」，Antigravity 会重启到登录页，登录另一个 Google 账号后 Buddy 会自动记下它，之后一键切换。</div>`}
+        ${others.length ? others.map(e => accRow(e)).join('') : `<div class="acc-empty"><img src="/illus/accounts-${isLight() ? 'light' : 'dark'}.jpg" alt=""><div><div style="font-size:17px;font-weight:450">把常用的账号都放进来</div><ol style="margin-top:14px"><li>点「添加账号」，Antigravity 重启到登录页</li><li>用另一个 Google 账号登录</li><li>回到这里，一键切换，不用再输密码</li></ol><span class="btn2 p" style="margin-top:18px" ${A('accAsk', '+')}>${ic('add', 15)}添加账号</span></div></div>`}
         ${accPop()}
         <div class="ur" style="border:0;height:auto;margin-top:22px;gap:24px">${u.map(([l, g]) => `<div><div class="lb">${l}</div><div class="kn num" style="font-size:22px;margin-top:6px">${fUSD(g.cost)}</div><div class="num dim" style="font-size:12px;margin-top:4px">${fmt(g.in + g.out)} · ${comma(g.n)} 次</div></div>`).join('')}</div>
       </div>

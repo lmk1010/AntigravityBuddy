@@ -32,7 +32,7 @@ const G3 = { gemini: ['#4C8DF6', '#8E7CF6', '#C76BD9'], claude: ['#D97757', '#E8
 const PAL = ['#5B9BFF', '#9D8CFF', '#4FC3D9', '#F2B35B', '#F27A9B', '#7FD6A0'];
 const grayG = () => isLight() ? ['#D5D6DC', '#DCDDE2', '#E3E4E8'] : ['#3A3B42', '#43444B', '#4C4D54'];
 const winG = w => w.kind === '每周' ? G3.week : w.provs.has('gemini') ? G3.gemini : G3.claude;
-const tiles = logos => `<span class="tile">${logos.map(l => `<img src="${LOGO[l]}" style="width:22px;height:22px;display:block">`).join('')}</span>`;
+const tiles = logos => `<span class="lgs">${logos.map(l => `<img src="${LOGO[l]}" style="width:22px;height:22px;display:block">`).join('')}</span>`;
 const winLogos = w => [...w.provs].sort((a, b) => a === 'claude' ? -1 : 1);
 let _cid = 0;
 // 渐变胶囊：f = 填充比例；win = 窗口时间（小三角）

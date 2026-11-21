@@ -326,7 +326,7 @@ body.light .nt{box-shadow:0 0 0 1px rgb(0 0 0/.06),0 18px 40px -14px rgb(0 0 0/.
 /* 设置：主题缩略图 */
 .th{display:flex;gap:14px;margin-top:14px}.th>div{text-align:center;font-size:12px;color:var(--fg-3);cursor:pointer}
 .th svg{display:block;border-radius:9px;margin-bottom:8px}.th .on svg{box-shadow:0 0 0 2px #2F71E3}.th .on{color:var(--fg)}
-.h2 .tile,.tile{width:auto!important;height:auto!important;background:none!important;box-shadow:none!important;padding:0!important;border-radius:0!important}
+.lgs{display:flex;align-items:center;gap:6px;flex:none}
 
 .ar{display:flex;align-items:center;gap:12px;height:62px;padding:0 12px;margin:0 -12px;border-radius:12px}.ar:hover,.ar.hov{background:var(--hover)}
 .ar .em{font-size:13.5px}.ar .pc{font-size:12.5px;width:36px;text-align:right}.av.sm{width:32px;height:32px;font-size:13px}
@@ -346,3 +346,19 @@ tr.xd td{height:auto;padding:0;border-bottom:1px solid var(--border)}
 .kv2 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
 .wkg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.wkg i{height:14px;border-radius:5px}
 .rep .st .d{margin-top:10px}
+
+/* 生成插画 */
+.hero-sec{position:relative}
+.hero-img{position:absolute;right:-32px;top:-28px;width:calc(100% + 64px);height:380px;object-fit:cover;object-position:right bottom;pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent)}
+.hero-sec>.md{position:relative;z-index:1}
+/* 大数字：更有分量 */
+.herov{font-size:84px;font-weight:500;letter-spacing:-.045em;line-height:.95;margin-top:14px;font-variation-settings:"ROND" 30,"wdth" 100;background:linear-gradient(180deg,#FFFFFF 30%,#A9B8FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+body.light .herov{background:linear-gradient(180deg,#14151A 35%,#4C5FD5);-webkit-background-clip:text;background-clip:text}
+.herov small{font-size:.46em;font-weight:500;margin-left:6px;letter-spacing:-.01em;opacity:.6}
+.kn{font-weight:450}
+.acc-empty{display:flex;gap:28px;align-items:center;margin-top:18px}
+.acc-empty img{width:168px;height:168px;border-radius:24px;object-fit:cover;flex:none}
+.acc-empty ol{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--fg-2)}
+.acc-empty li{counter-increment:s;display:flex;gap:10px;align-items:baseline}.acc-empty li:before{content:counter(s);font-size:11px;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;flex:none;background:var(--secondary);color:var(--fg-3)}
+body.light .pill.plan{color:#2F71E3;background:rgb(47 113 227/.1);border-color:transparent}
+body.light .acc-empty img{mix-blend-mode:multiply}
