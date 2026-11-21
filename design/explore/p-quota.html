@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>额度 · H2 风格</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="rows.css"><link rel="stylesheet" href="light.css">
+<style>
+.qh{display:flex;align-items:center;gap:12px}
+.qh .n{font-size:14px}.qh .t{font-size:12.5px;color:var(--fg-3);margin-top:2px}
+
+.qf{display:flex;justify-content:space-between;font-size:12px;color:var(--fg-4);margin-top:10px}.qf b{color:var(--fg-2);font-weight:400}
+.gh{display:flex;align-items:center;gap:10px;font-size:13.5px;height:30px}
+.gh .m{color:var(--fg-4);font-size:12.5px}
+.mr{display:flex;align-items:center;gap:12px;height:50px}
+.mr .nm{font-size:13.5px;white-space:nowrap}
+.str{display:flex;gap:4px;margin-top:4px}.str i{font-style:normal;font-size:10.5px;color:var(--fg-4);height:16px;padding:0 5px;border-radius:4px;background:var(--muted);display:flex;align-items:center}
+.str i.on{color:var(--fg-2);background:var(--secondary)}
+.mr .pc{width:44px;text-align:right;font-size:18px;font-weight:350;font-variation-settings:"ROND" 20,"wdth" 100}
+.pin{color:#F2B35B;font-size:14px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script><script src="kit.js"></script><script src="art.js"></script><script src="ui.js"></script>
+<script>
+UI.tabs(2);
+const GM = [
+  ['Gemini 4 Neon', ['Low', 'High', 'XHigh'], 2, .81, 1], ['Gemini 4 Hydrogen', ['High'], 0, .64, 0], ['Gemini 4 Argon', ['High'], 0, 1, 0], ['Gemini 3.8 Flash', ['Low', 'Medium'], 1, .92, 0],
+  ['Gemini 3.5 Flash Lite', [], 0, .81, 1], ['Orchestrator · Neon', [], 0, .76, 0], ['Gemini 3.1 Flash Image', [], 0, 1, 0], ['Gemini 2.5 Pro', ['High'], 0, 1, 0],
+];
+const CM = [['claude', 'Claude Opus 5.5', ['Medium', 'High'], 1, 1, 1], ['claude', 'Claude Sonnet 5.5', ['High'], 0, 1, 0], ['openai', 'GPT-OSS 120B', ['Medium'], 0, 1, 0], ['openai', 'GPT-6 Luna', ['High'], 0, 1, 0]];
+const USED = { 'Gemini 4 Neon': 3.62, 'Gemini 4 Hydrogen': .88, 'Gemini 3.8 Flash': .21, 'Gemini 3.5 Flash Lite': .14, 'Orchestrator · Neon': .09 };
+const row = (logo, n, str, on, f, pin, g) => `<div class="md mr" style="grid-column:span 6" data-tip='<b>${n}</b><br>剩 ${Math.round(f * 100)}%${USED[n] ? ` · 今天已用 $${USED[n]}` : ' · 今天未用'}<br><span style="color:var(--fg-4)">点击查看该模型的用量和明细</span>'>${UI.tile([logo], 'sm')}<div style="min-width:0;flex:1"><div class="nm">${n}${pin ? ` <span class="ms pin">keep</span>` : ''}</div>${str.length ? `<div class="str">${str.map((s, i) => `<i class="${i === on ? 'on' : ''}">${s}</i>`).join('')}</div>` : ''}</div><span class="num" style="width:52px;text-align:right;font-size:12.5px;color:var(--fg-${USED[n] ? 3 : 4})">${USED[n] ? '$' + USED[n] : '—'}</span>${UI.capsule(f, f < 1 ? g : UI.G.gray, 140, 10)}<span class="pc num" style="color:var(--fg-${f < 1 ? 1 : 4})">${Math.round(f * 100)}<small style="font-size:11px;color:var(--fg-4)">%</small></span></div>`;
+const foot = [`<span>已用 <b>$4.94</b> · 共约 <b>$25.8</b></span><span>81% · 窗口已过 80%</span>`, `<span>已用 <b>$0</b> · 共约 <b>$31.0</b></span><span>100% · 7 个模型</span>`, `<span>已用 <b>$0</b> · 共约 <b>$126</b></span><span>100% · 本周第 1 天</span>`];
+const BIG = ['$20.8', '$31.0', '$126'];
+const G3 = [UI.G.gemini, UI.G.claude, UI.G.week];
+mount(`<div class="pg" style="position:relative;gap:36px">${UI.aura()}
+  <section class="rw" style="height:150px">
+    ${D.pools.map((p, i) => `<div class="md" style="grid-column:span 4"><div class="qh">${UI.tile(p.logos)}<div><div class="n">${p.name}</div><div class="t num">${p.at} 重置 · ${p.cd}</div></div><span style="margin-left:auto;text-align:right"><span class="lb" style="justify-content:flex-end;color:var(--fg-4)">${i ? '约剩' : '剩余'}</span><span class="kn num" style="font-size:36px;display:block;margin-top:4px">${BIG[i]}</span></span></div>
+      <div style="margin-top:20px">${UI.capsule(p.left, G3[i], 344, 30, p.win)}</div><div class="qf num">${foot[i]}</div></div>`).join('')}
+  </section>
+  <section class="rw" style="height:28px">
+    <div class="md" style="grid-column:span 8"><div class="chips"><span class="on">全部 29</span><span>今天用过 3</span><span>已关注 2</span><span>不足 25% · 0</span></div></div>
+    <div class="md" style="grid-column:span 4;display:flex;justify-content:flex-end"><span class="seg"><span class="on">按额度池</span><span>按推理强度</span></span></div>
+  </section>
+  <section class="rw">
+    <div class="md gh" style="grid-column:1/-1">${LG('gemini', 15)}5 小时 · Gemini<span class="m num">12:00 重置 · 共享额度 · 18 个模型</span><span class="lk" style="margin-left:auto;font-size:12.5px">展开其余 10 个${ic('expand_more', 16)}</span></div>
+    ${GM.map(([n, s, o, f, p]) => row('gemini', n, s, o, f, p, UI.G.gemini)).join('')}
+  </section>
+  <section class="rw">
+    <div class="md gh" style="grid-column:1/-1">${LG('claude', 15)}${LG('openai', 15)}5 小时 · Claude / GPT<span class="m num">15:58 重置 · 共享额度 · 7 个模型</span><span class="lk" style="margin-left:auto;font-size:12.5px">展开其余 3 个${ic('expand_more', 16)}</span></div>
+    ${CM.map(([l, n, s, o, f, p]) => row(l, n, s, o, f, p, UI.G.claude)).join('')}
+  </section>
+</div>`);
+</script></body></html>

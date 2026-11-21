@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>概览探索 C · 无卡片网格</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.body{padding:0;display:flex;flex-direction:column}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:350px 1fr;gap:1px;background:var(--border);flex:1;min-height:0}
+.cell{background:var(--background);padding:22px 28px 20px;position:relative;min-width:0}
+.cell .h{margin-bottom:10px}
+.cell .h h3{display:flex;align-items:center;gap:8px}
+.k{font-size:30px;font-weight:450;letter-spacing:-.02em;line-height:1.1;font-variation-settings:"ROND" 20,"wdth" 100}
+.k small{font-size:13px;color:var(--fg-4);font-weight:350;margin-left:4px;letter-spacing:0}
+.pr{display:grid;grid-template-columns:190px 1fr 120px;align-items:center;gap:20px;height:40px;white-space:nowrap}
+.cells{display:flex;gap:3px}.cells i{flex:1;height:16px;border-radius:2px;background:rgb(255 255 255/.07)}
+.ring{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;color:var(--fg-2);text-align:center}
+.strip{height:52px;flex:none;display:flex;align-items:center;gap:14px;padding:0 28px;border-top:1px solid var(--border);color:var(--fg-2)}
+.strip .ms{color:var(--fg-3)}
+.dots{display:flex;gap:5px;margin-left:auto}.dots i{width:5px;height:5px;border-radius:50%;background:rgb(255 255 255/.2)}.dots i.on{background:var(--fg-2);width:14px;border-radius:3px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script>
+<script>
+// 1 额度：40 格点阵电池
+const battery = (f, c) => `<div class="cells">${Array.from({ length: 40 }, (_, i) => { const on = i < Math.round(f * 40); return `<i style="${on ? `background:${c};opacity:${(.45 + .55 * i / 40).toFixed(2)}` : ''}"></i>`; }).join('')}</div>`;
+const miniRing = (f, logo) => { const r = 16, C = 2 * Math.PI * r; return `<div style="position:relative;width:40px;height:40px"><svg width="40" height="40" style="transform:rotate(-90deg)"><circle cx="20" cy="20" r="${r}" fill="none" stroke="rgb(255 255 255/.08)" stroke-width="3"/><circle cx="20" cy="20" r="${r}" fill="none" stroke="${f < 1 ? '#3987e5' : 'rgb(255 255 255/.4)'}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${C * f} ${C}"/></svg><div style="position:absolute;inset:0;display:grid;place-items:center">${LG(logo, 16)}</div></div>`; };
+// 2 重置：同心圆，每圈 = 一个窗口已经走过的时间
+function rings() {
+  const S = 200, c = S / 2, P = [[D.pools[0], 84, '#3987e5'], [D.pools[1], 66, 'rgb(255 255 255/.55)'], [D.pools[2], 48, 'rgb(255 255 255/.3)']];
+  let s = '';
+  P.forEach(([p, r, col]) => { const C = 2 * Math.PI * r, f = p.win; s += `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgb(255 255 255/.06)" stroke-width="9"/>`; if (f > .05) s += `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C * f} ${C}" transform="rotate(-90 ${c} ${c})"/>`; });
+  for (let i = 0; i < 60; i++) { const a = i / 60 * 2 * Math.PI, r1 = 96, r2 = i % 5 ? 98 : 100; s += `<line x1="${c + r1 * Math.sin(a)}" y1="${c - r1 * Math.cos(a)}" x2="${c + r2 * Math.sin(a)}" y2="${c - r2 * Math.cos(a)}" stroke="rgb(255 255 255/${i % 5 ? .12 : .3})"/>`; }
+  return `<svg width="${S}" height="${S}">${s}<text x="${c}" y="${c - 2}" text-anchor="middle" style="fill:var(--fg);font-size:22px;font-weight:450">12:00</text><text x="${c}" y="${c + 18}" text-anchor="middle" style="fill:var(--fg-3);font-size:12px">1h 00m 后</text></svg>`;
+}
+// 3 Tokens：24 小时极坐标钟面，现在在 12 点方向
+function clock() {
+  const S = 270, c = S / 2, r0 = 52, rm = 128, mx = 1150;
+  let s = `<circle cx="${c}" cy="${c}" r="${r0 - 6}" fill="none" stroke="rgb(255 255 255/.08)"/>`;
+  [.33, .66, 1].forEach(k => s += `<circle cx="${c}" cy="${c}" r="${r0 + (rm - r0) * k}" fill="none" stroke="rgb(255 255 255/.04)"/>`);
+  D.hours.forEach(([a, b], i) => {
+    const ang = ((i + 1 - 24) / 24 * 360 + 360 / 48) * Math.PI / 180, w = 7.5;
+    const seg = (v0, v1, col) => { const ra = r0 + (rm - r0) * v0 / mx, rb = r0 + (rm - r0) * v1 / mx; const dx = Math.sin(ang), dy = -Math.cos(ang); return `<line x1="${c + ra * dx}" y1="${c + ra * dy}" x2="${c + rb * dx}" y2="${c + rb * dy}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`; };
+    if (!a) { const dx = Math.sin(ang), dy = -Math.cos(ang); s += `<circle cx="${c + r0 * dx}" cy="${c + r0 * dy}" r="1.6" fill="rgb(255 255 255/.18)"/>`; return; }
+    s += seg(0, a, '#3987e5') + seg(a + 40, a + b + 40, '#d95926');
+  });
+  [['现在', 23], ['18:00', 6], ['00:00', 12], ['06:00', 18]].forEach(([t, i]) => { const h = i === 23 ? 0 : 1; const ang = ((i + 1 - 24) / 24 * 360) * Math.PI / 180, r = rm + 10; s += `<text x="${c + r * Math.sin(ang)}" y="${c - r * Math.cos(ang) + 4}" text-anchor="middle" style="fill:var(--fg-${h ? 4 : 2});font-size:11px">${t}</text>`; });
+  return `<svg width="${S}" height="${S}" style="overflow:visible">${s}<text x="${c}" y="${c + 1}" text-anchor="middle" style="fill:var(--fg);font-size:17px;font-weight:450">5.16M</text><text x="${c}" y="${c + 17}" text-anchor="middle" style="fill:var(--fg-4);font-size:11px">411 次</text></svg>`;
+}
+// 4 会话：树图
+function treemap(W = 318, H = 300) {
+  const S = D.sessions, tot = D.real, g = 3, op = [1, .62, .46, .36, .28];
+  const w0 = W * S[0].v / tot, rest = tot - S[0].v, h1 = H * S[1].v / rest, rw = W - w0 - g;
+  const r3 = S[2].v + S[3].v + S[4].v;
+  const box = (x, y, w, h, i, big) => `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;border-radius:6px;background:rgb(57 135 229/${op[i] * .9});padding:${big ? 12 : 8}px;overflow:hidden;font-size:${big ? 13 : 11.5}px;line-height:1.35;color:${i < 2 ? '#fff' : 'rgb(255 255 255/.85)'}">${i < 4 ? `<div class="el" style="white-space:${big ? 'normal' : 'nowrap'}">${S[i].t}</div><div class="num" style="opacity:.7;margin-top:2px">${fmtK(S[i].v * 1000)}${big ? ` · ${Math.round(S[i].v / tot * 100)}%` : ''}</div>` : ''}${S[i].kids ? `<span class="ms" style="position:absolute;right:6px;bottom:6px;font-size:13px;opacity:.7">hub</span>` : ''}</div>`;
+  let x = w0 + g, y = h1 + g, hh = H - h1 - g, out = box(0, 0, w0, H, 0, 1) + box(x, 0, rw, h1, 1);
+  [2, 3, 4].forEach(i => { const w = (rw - 2 * g) * S[i].v / r3; out += box(x, y, w, hh, i); x += w + g; });
+  return `<div style="position:relative;width:${W}px;height:${H}px">${out}</div>`;
+}
+// 5 缓存：10×10 华夫格
+const waffle = () => `<div style="display:grid;grid-template-columns:repeat(10,17px);gap:5px">${Array.from({ length: 100 }, (_, i) => `<i style="width:17px;height:17px;border-radius:3px;background:${i < 95 ? `rgb(25 158 112/${i < 89 ? .85 : .5})` : 'rgb(255 255 255/.08)'}${i === 95 ? ';box-shadow:inset 0 0 0 1px rgb(255 255 255/.3)' : ''}"></i>`).join('')}</div>`;
+
+mount(`<div class="grid">
+  <div class="cell" style="grid-column:span 2">
+    <div class="h"><h3>额度</h3><div class="x"><span class="lk">全部 ${D.modelsTotal} 个模型${ic('chevron_right')}</span></div></div>
+    ${D.pools.map((p, i) => `<div class="pr"><span class="row" style="gap:8px">${p.logos.map(l => LG(l, 15)).join('')}<span style="color:var(--fg-${i ? 2 : 1})">${p.name}</span></span>${battery(p.left, i ? 'rgb(255 255 255/.55)' : '#3987e5')}<span class="num r" style="text-align:right">${i ? `<span class="dim">100% 未用</span>` : `<b style="font-weight:450">$${p.usd}</b> <span class="dim">· 81%</span>`}</span></div>`).join('')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      ${D.models.map(m => `<div class="row" style="gap:12px">${miniRing(m.f, m.l)}<div><div style="font-size:13px;white-space:nowrap">${m.n}</div><div class="dim num" style="font-size:12px;margin-top:1px">${Math.round(m.f * 100)}% · ${m.cd} 重置</div></div></div>`).join('')}
+    </div>
+  </div>
+  <div class="cell">
+    <div class="h"><h3>重置</h3><div class="x">${D.tz}</div></div>
+    <div style="display:flex;align-items:center;gap:22px">
+      ${rings()}
+      <div style="display:flex;flex-direction:column;gap:14px;font-size:12.5px">
+        ${D.pools.map((p, i) => `<div><div class="row" style="gap:6px;color:var(--fg-3)"><i style="width:8px;height:8px;border-radius:2px;background:${['#3987e5', 'rgb(255 255 255/.55)', 'rgb(255 255 255/.3)'][i]}"></i>${p.logos.length > 1 ? 'Claude/GPT' : i ? '每周' : 'Gemini'}</div><div class="num" style="margin-top:3px;padding-left:14px">${p.at}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="h"><h3>Tokens</h3><div class="x"><span class="lgd"><span><i style="background:var(--s1)"></i>输入</span><span><i style="background:var(--s2)"></i>输出</span></span></div></div>
+    <div style="display:grid;place-items:center;margin-top:22px">${clock()}</div>
+    <div class="dim num" style="text-align:center;font-size:12.5px;margin-top:20px">约 $${D.cost} · 输入 4.56M · 输出 595K</div>
+  </div>
+  <div class="cell">
+    <div class="h"><h3>会话</h3><div class="x">真实消耗</div></div>
+    <div style="margin-top:14px">${treemap()}</div>
+  </div>
+  <div class="cell">
+    <div class="h"><h3>缓存命中</h3><div class="x">每格 1%</div></div>
+    <div class="k num" style="margin-top:6px">95.1<small>%</small></div>
+    <div class="dim" style="font-size:12.5px;margin:4px 0 20px">复用 89.01M，只有 4.56M 是新增输入</div>
+    ${waffle()}
+  </div>
+</div>
+<div class="strip">${ic('trending_down', 17)}<span>${D.ins[2].h}</span><span class="dim" style="font-size:12.5px">${D.ins[2].d}</span><span class="dots"><i></i><i></i><i class="on"></i></span>${ic('chevron_right', 16)}</div>`);
+</script></body></html>

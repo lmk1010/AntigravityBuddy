@@ -1,5 +1,8 @@
 /* ===== 数据层：全部来自 /api/data（Antigravity 本地接口 + 会话记录） ===== */
-let U = { models: [], sessions: [], rows: [] }, LIVE = { at: 0 }, NOW = Math.floor(Date.now() / 1000), SE = [], ROWS = [], WINS = [], ACC = [];
+// 演示截图用：?at=16:40 把「现在」挪到今天 16:40（只影响显示，真实数据不会带这个参数）
+const SHIFT = (() => { const a = new URLSearchParams(location.search).get('at'); if (!a) return 0; const [h, m] = a.split(':').map(Number), d = new Date(), t = new Date(d); t.setHours(h, m, 0, 0); return Math.round((t - d) / 1000); })();
+const nowS = () => Math.floor(Date.now() / 1000) + SHIFT;
+let U = { models: [], sessions: [], rows: [] }, LIVE = { at: 0 }, NOW = nowS(), SE = [], ROWS = [], WINS = [], ACC = [];
 const TZ_AUTO = -new Date().getTimezoneOffset() * 60, TZ_OPT = { auto: TZ_AUTO, sh: 8 * 3600, utc: 0 };
 let TZ = TZ_AUTO;
 const tzLabel = () => { const h = TZ / 3600; return 'GMT' + (h >= 0 ? '+' : '') + h; };
@@ -28,7 +31,7 @@ const LOGO = __LOGOS__;
 const planTag = a => { if (!a.p) return ''; const t = a.tier || '', cls = /ultra/i.test(t) ? 'ultra' : /team|enterprise|business|hybrid/i.test(t) && !/TEAMS_TIER_PRO\b/.test(t) ? 'team' : /pro/i.test(t) ? 'pro' : /free|standard/i.test(t) ? 'free' : 'std', trial = /trial/i.test(t); return `<span class="pill plan ${cls}${trial ? ' trial' : ''}">${a.p.replace(/\s*TRIAL\s*/i, '')}${trial ? ' · 试用' : ''}</span>`; };
 
 function loadData(p) {
-  LIVE = p; U = p.usage; NOW = Math.floor(Date.now() / 1000);
+  LIVE = p; U = p.usage; NOW = nowS();
   SE = U.sessions.map((s, i) => ({ ...s, i, title: esc(s.title), agent: esc(s.agent) }));
   SE.forEach(s => { const par = s.parent && SE.find(x => x.id === s.parent); s.root = par ? par.i : s.i; s.child = !!par; });
   SE.forEach(s => { if (s.title === '未命名会话') s.title = s.child ? `子代理 · ${s.agent}` : `后台任务 ${s.id}`; });

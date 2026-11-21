@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>账号 · H2 风格</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="rows.css"><link rel="stylesheet" href="light.css">
+<style>
+.av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:17px;font-weight:550;color:#fff;flex:none;font-variation-settings:normal}
+.av.lg{width:60px;height:60px;font-size:24px}.av.sm{width:32px;height:32px;font-size:13px}.av.xs{width:22px;height:22px;font-size:10px}
+.cur .em{font-size:19px;font-weight:450;letter-spacing:-.01em}
+.meta{font-size:12.5px;color:var(--fg-3);margin-top:5px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.meta i{width:6px;height:6px;border-radius:50%;background:#3FB97D}
+.cr{display:flex;justify-content:space-between;font-size:12.5px;color:var(--fg-3);margin:18px 0 8px}.cr b{font-weight:400;color:var(--fg)}
+.ar{display:flex;align-items:center;gap:14px;height:62px;padding:0 14px;margin:0 -14px;border-radius:12px;position:relative}
+.ar:hover,.ar.hov{background:var(--hover)}
+.ar .em{font-size:13.5px;white-space:nowrap}
+.ar .pc{font-size:13px;width:40px;text-align:right}
+.btn2{height:30px;padding:0 14px;border-radius:15px;background:var(--secondary);display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg);cursor:pointer;white-space:nowrap;border:0;font-family:inherit}
+.btn2:hover{background:var(--secondary-h)}.btn2.p{background:#2F71E3;color:#fff}.btn2.p:hover{background:#3d7eee}
+.pop{position:absolute;z-index:20;width:400px;background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:18px 20px;box-shadow:0 30px 70px -20px rgb(0 0 0/.6),0 4px 14px -4px rgb(0 0 0/.35)}
+.pop h4{font-size:15px;font-weight:550;display:flex;align-items:center;gap:10px}
+.pop .li{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--fg-2);margin-top:12px;line-height:1.5}
+.pop .li svg{margin-top:2px;color:var(--fg-3)}.pop .li.w svg{color:#E8955E}
+.pop .ft{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.step{display:flex;align-items:center;gap:12px;height:34px;font-size:13px;color:var(--fg-3)}
+.step .dot{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:none;box-shadow:inset 0 0 0 1.5px var(--fg-4)}
+.step.ok{color:var(--fg-2)}.step.ok .dot{background:#3FB97D;box-shadow:none;color:#fff}
+.step.now{color:var(--fg)}.step.now .dot{box-shadow:none;background:conic-gradient(#5B9BFF 0 30%,rgb(91 155 255/.2) 0);-webkit-mask:radial-gradient(circle,transparent 5.5px,#000 6px);animation:sp 1s linear infinite}
+.step .r{margin-left:auto;font-size:12px;color:var(--fg-4)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:13px;box-shadow:0 20px 50px -16px rgb(0 0 0/.6);z-index:30}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script><script src="kit.js"></script><script src="art.js"></script><script src="ui.js"></script>
+<script>
+UI.tabs(5);
+const A = [
+  { e: 'lmkbnb1@gmail.com', l: 'M', g: ['#4C8DF6', '#8E7CF6'], st: '使用中', pa: 500, pb: 50000, fa: 100, fb: 150000, mo: 41.2, ip: ['🇺🇸', 'Los Angeles', '154.21.83.17'] },
+  { e: 'lmkbnb0@gmail.com', l: 'M', g: ['#3FB97D', '#4FC3D9'], st: '3 分钟前', pa: 41200, pb: 50000, fa: 128000, fb: 150000, mo: 18.6, ip: ['🇯🇵', 'Tokyo', '45.76.211.9'] },
+  { e: 'mk.studio@gmail.com', l: 'S', g: ['#E8955E', '#F27A9B'], st: '12 分钟前', pa: 18800, pb: 50000, fa: 62000, fb: 150000, mo: 27.9, ip: ['🇸🇬', 'Singapore', '139.180.140.22'] },
+  { e: 'lmk.lab@gmail.com', l: 'L', g: ['#6B6C75', '#8A8B94'], st: '登录已过期', pa: 0, pb: 1, fa: 0, fb: 1, mo: 0, exp: 1, ip: ['🌐', '跟随系统', ''] },
+];
+let CUR = 0, STATE = UI.q.get('state') || '', TARGET = 2, STEP = 2;
+const comma = n => n.toLocaleString('en-US');
+const av = (a, s = '') => `<span class="av ${s}" style="background:linear-gradient(135deg,${a.g[0]},${a.g[1]})">${a.l}</span>`;
+const si = (p, z = 16) => `<svg width="${z}" height="${z}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none">${p}</svg>`;
+const IC = { warn: '<path d="M8 2.25L14.25 13.5H1.75z"/><path d="M8 6.5v3M8 11.5v.01"/>', net: '<circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.7 1.8 2.5 3.9 2.5 6.25S9.7 12.45 8 14.25C6.3 12.45 5.5 10.35 5.5 8S6.3 3.55 8 1.75"/>', key: '<circle cx="5.5" cy="10.5" r="3"/><path d="M7.6 8.4l5.65-5.65M11 5l1.75 1.75"/>', ref: '<path d="M13.25 8A5.25 5.25 0 1 1 11.6 4.2"/><path d="M13.25 2.5v2.75H10.5"/>', ok: '<path d="M4 8.25l2.6 2.5L12 5.5"/>' };
+function river(W = 960, H = 280) {
+  const n = 20, X = i => i / (n - 1) * W;
+  let seed = 3; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const ser = A.slice(0, 3).map((a, k) => ART.smooth(Array.from({ length: n }, (_, i) => { const on = k === 0 ? i > 11 : k === 1 ? i < 13 : i > 4 && i < 17; return on ? .6 + rnd() * 2.6 : rnd() * .25; }), 1));
+  const tot = Array.from({ length: n }, (_, i) => ser.reduce((a, r) => a + r[i], 0)), mx = Math.max(...tot) * 1.1, Y = v => H - 22 - v / mx * (H - 34);
+  let base = Array(n).fill(0), s = '', ends = [], last = 1e9;
+  [2, 1, 0].forEach(k => {
+    const top = base.map((b, i) => b + ser[k][i]), up = top.map((v, i) => [X(i), Y(v)]), dn = base.map((v, i) => [X(i), Y(v)]).reverse();
+    s += `<defs><linearGradient id="rv${k}" x1="0" x2="1"><stop offset="0" stop-color="${A[k].g[0]}" stop-opacity=".7"/><stop offset="1" stop-color="${A[k].g[1]}" stop-opacity=".95"/></linearGradient></defs><path d="${UI.curve(up)}L${dn[0][0]},${dn[0][1]}${UI.curve(dn).replace(/^M[^C]*/, '')}Z" fill="url(#rv${k})" data-tip='<b>${A[k].e}</b><br>本月 ${A[k].mo}M · 约 $${Math.round(A[k].mo * 7)}'/>`;
+    let mid = Math.min((Y(top[n - 1]) + Y(base[n - 1])) / 2, last - 28); last = mid;
+    ends.push(`<foreignObject x="${W + 12}" y="${mid - 12}" width="110" height="24"><div style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:450;color:var(--fg)">${av(A[k], 'xs')}<span class="num">${A[k].mo}M</span></div></foreignObject>`);
+    base = top;
+  });
+  [1, 5, 10, 15, 20].forEach(d => s += `<text x="${X(d - 1)}" y="${H - 4}" text-anchor="${d === 1 ? 'start' : d === 20 ? 'end' : 'middle'}">11-${String(d).padStart(2, '0')}</text>`);
+  return `<svg width="${W + 120}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)"><line x1="0" x2="${W}" y1="${H - 22}" y2="${H - 22}" style="stroke:${UI.ink(.14)}"/>${s}${ends.join('')}</svg>`;
+}
+const order = () => A.map((_, i) => i).filter(i => i !== CUR);
+function popover() {
+  const t = A[TARGET], top = order().indexOf(TARGET) * 62 + 92;
+  if (STATE === 'confirm') return `<div class="pop" style="right:0;top:${top}px">
+    <h4>${av(t, 'xs')}切换到 ${t.e}</h4>
+    <div class="li w">${si(IC.warn)}<span>正在生成的回复会中断，已经写好的内容会保留</span></div>
+    <div class="li">${si(IC.net)}<span>出口 IP 改为 ${t.ip[0]} ${t.ip[1]} <span class="num" style="color:var(--fg-3)">${t.ip[2]}</span></span></div>
+    <div class="li">${si(IC.key)}<span>已保存登录状态，不需要重新输入密码</span></div>
+    <div class="li">${si(IC.ref)}<span>Antigravity 会自动刷新，约 10 秒</span></div>
+    <div class="ft"><label class="row" style="gap:8px;font-size:12.5px;color:var(--fg-3)"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--fg-4)"></span>下次不再询问</label><span class="row" style="gap:8px"><button class="btn2" data-act="cancel">取消</button><button class="btn2 p" data-act="go">切换</button></span></div></div>`;
+  if (STATE === 'switching') {
+    const S = [['保存当前会话', '0.4s'], [`切换出口 ${t.ip[0]} ${t.ip[1]}`, '1.2s'], [`登录 ${t.e}`, ''], ['刷新 Antigravity', '']];
+    return `<div class="pop" style="right:0;top:${top}px"><h4>${av(t, 'xs')}正在切换到 ${t.e}</h4><div style="margin-top:12px">${S.map(([x, r], i) => `<div class="step ${i < STEP ? 'ok' : i === STEP ? 'now' : ''}"><span class="dot">${i < STEP ? si(IC.ok, 11) : ''}</span>${x}<span class="r">${i < STEP ? r : i === STEP ? '进行中' : ''}</span></div>`).join('')}</div>
+      <div style="margin-top:14px">${UI.capsule((STEP + .5) / 4, UI.G.gemini, 358, 6)}</div><div class="ft" style="margin-top:14px"><span style="font-size:12px;color:var(--fg-4)">切换期间不要关闭 Antigravity</span><button class="btn2" data-act="cancel">取消</button></div></div>`;
+  }
+  return '';
+}
+function page() {
+  const c = A[CUR];
+  return `<div class="pg" style="position:relative;gap:44px">${UI.aura()}
+  <section class="rw" style="height:250px;z-index:5">
+    <div class="md cur" style="grid-column:span 5">
+      <div class="lb">当前账号</div>
+      <div class="row" style="gap:16px;margin-top:16px">${av(c, 'lg')}<div><div class="em">${c.e}</div><div class="meta"><i></i>使用中 · PRO<span style="color:var(--fg-4)">·</span>${c.ip[0]} ${c.ip[1]} <span class="num" style="color:var(--fg-4)">${c.ip[2]}</span></div></div></div>
+      <div class="cr num"><span>Prompt 积分</span><b>${comma(c.pa)}<span style="color:var(--fg-4)"> / ${comma(c.pb)}</span></b></div>${UI.capsule(c.pa / c.pb, UI.G.gemini, 436, 14)}
+      <div class="cr num"><span>Flow 积分</span><b>${comma(c.fa)}<span style="color:var(--fg-4)"> / ${comma(c.fb)}</span></b></div>${UI.capsule(c.fa / c.fb, UI.G.week, 436, 14)}
+    </div>
+    <div class="md" style="grid-column:7 / span 6;position:relative">
+      <div class="row" style="justify-content:space-between"><div class="lb">其他账号 · 切换时自动换出口 IP</div><span class="lk" style="font-size:12.5px">${ic('add', 15)}添加账号</span></div>
+      <div style="margin-top:8px">${order().map(i => { const a = A[i], f = a.pa / a.pb; return `<div class="ar ${(STATE && i === TARGET) ? 'hov' : ''}" style="${a.exp ? 'opacity:.6' : ''}">${av(a, 'sm')}<div style="min-width:0;flex:1"><div class="em">${a.e}</div><div class="meta" style="margin-top:3px">${a.st} · ${a.ip[0]} ${a.ip[1]}</div></div>
+        ${a.exp ? '' : `<span data-tip="Prompt 积分 ${comma(a.pa)} / ${comma(a.pb)}">${UI.capsule(f, UI.G.gemini, 96, 6)}</span><span class="pc num">${Math.round(f * 100)}%</span>`}
+        <button class="btn2" data-act="${a.exp ? 'relogin' : 'ask'}" data-i="${i}">${a.exp ? ic('open_in_new', 14) + '重新登录' : '切换'}</button></div>`; }).join('')}</div>
+      ${popover()}
+    </div>
+  </section>
+  <section class="rw" style="height:366px">
+    <div class="md" style="grid-column:1/-1">
+      <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="lb">本月 · 全部账号真实消耗</div><div class="kn num" style="margin-top:10px;font-size:40px">87.7<small>M</small> <span style="font-size:15px;color:var(--fg-3);letter-spacing:0">约 $612</span></div></div><span class="seg"><span>7d</span><span class="on">本月</span></span></div>
+      <div style="margin-top:16px">${river()}</div>
+    </div>
+  </section>
+</div>${STATE === 'done' ? `<div class="toast">${av(A[CUR], 'xs')}已切换到 ${A[CUR].e}<span style="color:var(--fg-3)">· 出口 ${A[CUR].ip[0]} ${A[CUR].ip[1]}</span></div>` : ''}`;
+}
+function render() { mount(page()); }
+if (STATE === 'done') { CUR = TARGET; TARGET = 0; }
+render();
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'ask') { TARGET = +b.dataset.i; STATE = 'confirm'; }
+  else if (act === 'cancel') STATE = '';
+  else if (act === 'go') { STATE = 'switching'; STEP = 0; const tick = () => { if (STATE !== 'switching') return; STEP++; if (STEP > 3) { CUR = TARGET; STATE = 'done'; render(); setTimeout(() => { STATE = ''; render(); }, 2600); return; } render(); setTimeout(tick, 900); }; setTimeout(tick, 900); }
+  render();
+});
+</script></body></html>

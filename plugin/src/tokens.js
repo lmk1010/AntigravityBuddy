@@ -39,8 +39,14 @@ function richChart(bs, rs, m, W) {
       segs += `<path class="mk" d="M${x},${y + hg}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + bw - rr}Q${x + bw},${y} ${x + bw},${y + rr}V${y + hg}Z" fill="${ser[k].c}"/>`; });
     const tip = `<span class="dim">${bs[i].long}</span><br>${ser.map((s, k) => b.parts[k] ? `${sw(s.c)}${s.name} <b class="num">${f1(b.parts[k])}</b> <span class="dim num">${Math.round(b.parts[k] / b.tot * 100)}%</span>` : '').filter(Boolean).join('<br>') || '<span class="dim">没有调用</span>'}`
       + (b.g.n ? `<br><span class="dim num">${comma(b.g.n)} 次调用 · 缓存 ${fmt(b.g.cache)} · 命中 ${Math.round(b.hit * 100)}%<br>约 ${fUSD(b.g.cost)}${b.dec ? ` · 解码中位 ${Math.round(b.dec)} tok/s` : ''} · 点击查看明细</span>` : '');
-    g += `<g class="hit" ${tipA(tip)} ${b.g.n ? A('bucket', bs[i].a + ',' + bs[i].b) : ''}><rect x="${pad.l + band * i}" y="${pad.t}" width="${band}" height="${ih}" fill="transparent"/>${segs}</g>`;
+    g += `<g class="hit" ${tipA(tip)} ${b.g.n ? A('bucket', bs[i].a + ',' + bs[i].b) : ''}><rect x="${pad.l + band * i}" y="${pad.t}" width="${band}" height="${ih}" fill="transparent"/>${st.ctype === 'bar' ? segs : ''}</g>`;
   });
+  // 折线 / 堆叠面积：同一组数据换一种画法，末端标数值
+  if (st.ctype !== 'bar' && total) { const X = i => pad.l + band * (i + .5), base = B.map(() => 0), area = st.ctype === 'area', paths = [];
+    ser.forEach((se, k) => { const top = B.map((b, i) => (area ? base[i] : 0) + b.parts[k]), up = top.map((v, i) => [X(i), Y(v)]), d = curve(up);
+      if (area) { const dn = base.map((v, i) => [X(i), Y(v)]).reverse(); paths.unshift(`<path d="${d}L${dn[0][0]},${dn[0][1]}${curve(dn).replace(/^M[^C]*/, '')}Z" fill="${se.c}" opacity=".55" pointer-events="none"/><path d="${d}" fill="none" stroke="${se.c}" stroke-width="1.5" pointer-events="none"/>`); top.forEach((v, i) => base[i] = v); }
+      else paths.push(`<path d="${d}" fill="none" stroke="${se.c}" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>` + (bs.length <= 40 ? up.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${se.c}" stroke="var(--background)" stroke-width="1.5" pointer-events="none"/>`).join('') : ''));
+    }); g += paths.join(''); }
   if (tots[peak] > 0 && bs.length > 1) g += `<text x="${pad.l + band * (peak + .5)}" y="${Y(tots[peak]) - 6}" fill="var(--fg-2)" font-size="10.5" text-anchor="middle" class="num">${f1(tots[peak])}</text>`;
   if (st.ov.avg && avg) g += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--fg-3)" stroke-dasharray="4 4" opacity=".7" pointer-events="none"/><text x="${pad.l + 4}" y="${Y(avg) - 5}" fill="var(--fg-3)" font-size="10.5" class="num" pointer-events="none">均值 ${f1(avg)}</text>`;
   if (st.ov.cum && total) { let c = 0; const pts = B.map((b, i) => { c += b.tot; return [pad.l + band * (i + 1), pad.t + ih - c / total * ih]; });
@@ -90,7 +96,7 @@ function vTokens() {
   return shell(sub(filters({ extra: `<span class="ctl" ${A('export')}>${ic('ios_share')}导出</span>` })) + `<div class="body">
     <div class="mstrip">${Object.keys(METRICS).map(k => `<div class="mcell ${k === m ? 'on' : ''}" ${A('metric', k)} style="--mc:${MCOL[k]}" ${tipA(k === 'cache' ? `占输入 ${(hit * 100).toFixed(1)}%` : METRICS[k][1])}><span class="ml">${METRICS[k][0]}</span><span class="mv num">${val[k]}</span>${delta(k)}</div>`).join('')}</div>
     <div class="h" style="margin-top:24px"><div class="row" style="gap:14px;align-items:baseline"><h3>${METRICS[m][0]}</h3><span class="dim num" style="font-size:12.5px">峰值 ${rc.peak} · 有调用的时段平均 ${mfmt(m)(rc.avg)} · ${rc.active}/${bs.length} 个时段</span></div>
-      <div class="x">${seg([['type', '按类型'], ['model', '按模型'], ['sess', '按会话']], st.stack, 'stack')}<span class="row" style="gap:6px">${tog('hit', '命中率', 'var(--s3)')}${tog('cum', '累计', 'rgb(255 255 255 / .6)')}${tog('avg', '均值', 'var(--fg-3)')}</span></div></div>
+      <div class="x">${ibg([['bar', 'bar', '柱状图'], ['line', 'line', '折线图'], ['area', 'area', '堆叠面积图']], st.ctype, 'ctype')}${seg([['type', '按类型'], ['model', '按模型'], ['sess', '按会话']], st.stack, 'stack')}<span class="row" style="gap:6px">${tog('hit', '命中率', 'var(--s3)')}${tog('cum', '累计', 'rgb(255 255 255 / .6)')}${tog('avg', '均值', 'var(--fg-3)')}</span></div></div>
     <div class="lgd2">${rc.legend}</div>
     ${rc.svg}
     <div class="hr"></div>

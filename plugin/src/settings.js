@@ -7,9 +7,15 @@ const getPath = k => k.split('.').reduce((o, p) => o[p], st);
 function setPath(k, v) { const ps = k.split('.'), last = ps.pop(), o = ps.reduce((x, p) => x[p], st); o[last] = v === '!' ? !o[last] : v === 'true' ? true : v === 'false' ? false : isNaN(v) || v === '' ? v : Number(v); }
 const segSet = (key, opts) => `<div class="seg">${opts.map(([v, l]) => `<span class="${String(getPath(key)) === String(v) ? 'on' : ''}" ${A('set', key + '=' + v)}>${l}</span>`).join('')}</div>`;
 const dot = () => '';
+// 主题缩略图：小窗口插画
+const thumb = v => { const win = (b, p, l) => `<rect width="112" height="72" fill="${b}"/><rect x="22" y="8" width="84" height="58" rx="5" fill="${p}"/><path d="M30,52 C45,30 55,48 68,36 S85,44 100,40 L100,58 L30,58Z" fill="#5B9BFF" opacity=".8"/><rect x="30" y="16" width="26" height="5" rx="2.5" fill="${l}"/><rect x="6" y="10" width="11" height="3" rx="1.5" fill="${l}"/><rect x="6" y="17" width="11" height="3" rx="1.5" fill="${l}"/>`;
+  const L = win('#F4F4F6', '#fff', 'rgb(0 0 0/.08)'), Dk = win('#111114', '#070708', 'rgb(255 255 255/.08)');
+  return `<svg width="112" height="72" viewBox="0 0 112 72">${v === 0 ? `<clipPath id="th0"><rect width="56" height="72"/></clipPath><clipPath id="th1"><rect x="56" width="56" height="72"/></clipPath><g clip-path="url(#th0)">${L}</g><g clip-path="url(#th1)">${Dk}</g>` : v === 2 ? L : Dk}<rect x=".5" y=".5" width="111" height="71" rx="9" fill="none" style="stroke:${ink(.12)}"/></svg>`; };
 const SPV = {
   general: () => ['通用', '显示方式与默认视图。设置保存在本机。',
-    grp('显示', '', gr('时区', '重置时间、图表和明细都按这个时区显示', segSet('tz', [['auto', '跟随系统 · ' + (TZ_AUTO >= 0 ? 'GMT+' : 'GMT') + TZ_AUTO / 3600], ['sh', '北京时间'], ['utc', 'UTC']]))
+    grp('外观', '', `<div class="gr" style="display:block"><div>主题</div><div class="d">跟随系统，或单独指定深色 / 浅色</div><div class="th">${[[0, '跟随系统'], [1, '深色'], [2, '浅色']].map(([v, l]) => `<div class="${st.theme === v ? 'on' : ''}" ${A('theme', v)}>${thumb(v)}${l}</div>`).join('')}</div></div>`)
+    + grp('日报', '每天下班时总结今天做了什么', gr('下班提醒', '工作日到点提醒一次（Buddy 开着时）', `<span class="sw ${st.rep.on ? 'on' : ''}" ${A('set', 'rep.on=!')}></span>`) + gr('提醒时间', '', segSet('rep.at', [['17:30', '17:30'], ['18:00', '18:00'], ['18:30', '18:30'], ['19:00', '19:00'], ['20:00', '20:00']])))
+    + grp('显示', '', gr('时区', '重置时间、图表和明细都按这个时区显示', segSet('tz', [['auto', '跟随系统 · ' + (TZ_AUTO >= 0 ? 'GMT+' : 'GMT') + TZ_AUTO / 3600], ['sh', '北京时间'], ['utc', 'UTC']]))
       + gr('数字格式', `当前示例：${fmt(5890123)}`, segSet('fullnum', [[false, '5.89M'], [true, '5,890,123']])))
     + grp('默认视图', '', gr('时间范围', '', segSet('range', [['6h', '近 6 小时'], ['24h', '近 24 小时'], ['7d', '近 7 天'], ['30d', '近 30 天'], ['mo', '本月']]))
       + gr('额度页默认显示', '模型很多时，只看用过的更清楚', segSet('q.f', [['used', '使用过'], ['pin', '已关注'], ['all', '全部']])))

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>概览探索 B · 时间轴</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.body{padding:26px 40px 22px;display:flex;flex-direction:column}
+.say{font-size:22px;line-height:1.45;font-weight:400;letter-spacing:-.01em;font-variation-settings:"ROND" 20,"wdth" 100;color:var(--fg-3)}
+.say b{color:var(--fg);font-weight:450}
+.say .chipv{display:inline-flex;align-items:center;gap:6px;vertical-align:2px}
+.nts{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:auto;padding-top:18px;border-top:1px solid var(--border)}
+.nt{display:flex;gap:12px;align-items:flex-start;padding:8px;margin:-8px;border-radius:8px}
+.nt.hov{background:var(--hover)}
+.badge{width:20px;height:20px;border-radius:50%;border:1px solid rgb(255 255 255/.28);display:grid;place-items:center;font-size:11.5px;color:var(--fg-2);flex:none;margin-top:1px}
+.nt .d{color:var(--fg-3);font-size:12.5px;margin-top:3px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script>
+<script>
+const W = 1084, G = 104, PW = W - G, HRS = 30, X = h => G + h / HRS * PW, NOW = 23; // 0 = 昨天 12:00，23 = 现在 11:00，30 = 今天 18:00
+const BAND = { cache: [8, 58], tok: [84, 276], sess: [302, 402], pool: [424, 498] }, H = 524;
+function canvas() {
+  let s = '';
+  const lane = (k, t, sub) => s += `<text x="0" y="${BAND[k][0] + 12}" style="fill:var(--fg-2);font-size:12.5px">${t}</text>${sub ? `<text x="0" y="${BAND[k][0] + 30}" style="fill:var(--fg-4);font-size:11.5px">${sub}</text>` : ''}`;
+  // 未来区：斜线
+  s += `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="rgb(255 255 255/.035)" stroke-width="2"/></pattern>
+    <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#199e70" stop-opacity=".22"/><stop offset="1" stop-color="#199e70" stop-opacity="0"/></linearGradient></defs>
+    <rect x="${X(NOW)}" y="0" width="${X(HRS) - X(NOW)}" height="${BAND.pool[1]}" fill="url(#hatch)"/>`;
+  // 小时网格
+  for (let h = 0; h <= HRS; h += 3) if (Math.abs(h - NOW) > 1.5) s += `<line x1="${X(h)}" x2="${X(h)}" y1="0" y2="${BAND.pool[1]}" stroke="rgb(255 255 255/${h % 6 ? .025 : .05})"/><text x="${X(h)}" y="${H - 4}" text-anchor="middle" style="fill:var(--fg-4);font-size:11.5px">${String((12 + h) % 24).padStart(2, '0')}:00</text>`;
+  // 1 缓存命中
+  lane('cache', '缓存命中', '95.1%');
+  const cy = v => BAND.cache[1] - (v - .5) / .5 * (BAND.cache[1] - BAND.cache[0]);
+  const cp = D.hours.map((h, i) => [h[2], i]).filter(p => p[0]).map(([v, i]) => [X(i + .5), cy(v)]);
+  const cd = cp.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+  s += `<path d="${cd}L${cp.at(-1)[0]},${BAND.cache[1]}L${cp[0][0]},${BAND.cache[1]}Z" fill="url(#cg)"/><path d="${cd}" fill="none" stroke="#199e70" stroke-width="1.6" stroke-linejoin="round"/>`;
+  cp.forEach(p => s += `<circle cx="${p[0]}" cy="${p[1]}" r="2" fill="#199e70"/>`);
+  // 2 Tokens
+  lane('tok', 'Tokens', '5.16M · 411 次');
+  const ty = v => BAND.tok[1] - v / 1100 * (BAND.tok[1] - BAND.tok[0]), bw = PW / HRS * .5;
+  D.hours.forEach(([a, b], i) => {
+    const x = X(i + .5) - bw / 2;
+    if (!a) { s += `<rect x="${x}" y="${BAND.tok[1] - 2}" width="${bw}" height="2" rx="1" fill="rgb(255 255 255/.06)"/>`; return; }
+    s += `<rect x="${x}" y="${ty(a)}" width="${bw}" height="${BAND.tok[1] - ty(a)}" rx="2" fill="var(--s1)"/><rect x="${x}" y="${ty(a + b)}" width="${bw}" height="${ty(a) - ty(a + b) - 1.5}" rx="2" fill="var(--s2)"/>`;
+  });
+  s += `<line x1="${G}" x2="${X(NOW)}" y1="${BAND.tok[1]}" y2="${BAND.tok[1]}" stroke="var(--axis)"/>`;
+  // 3 会话：甘特
+  lane('sess', '会话', '5 个');
+  const SC = ['#3987e5', '#6aa3ec', '#8fb9f0', '#a9c8f3', '#c3d8f6'];
+  D.sessions.forEach((se, i) => {
+    const y = BAND.sess[0] + i * 20, x0 = X(se.span[0]), x1 = X(Math.min(se.span[1], NOW + .02));
+    s += `<rect x="${x0}" y="${y + 4}" width="${x1 - x0}" height="10" rx="5" fill="#3987e5" fill-opacity="${[1,.62,.48,.38,.3][i]}"/>`;
+    const t = se.t.length > 26 ? se.t.slice(0, 25) + '…' : se.t, right = x1 + 10 + t.length * 7 < X(HRS);
+    s += `<text x="${right ? x1 + 10 : x0 - 10}" y="${y + 13}" text-anchor="${right ? 'start' : 'end'}" style="fill:var(--fg-${i ? 3 : 2});font-size:12px">${t}<tspan style="fill:var(--fg-4)">  ${fmtK(se.v * 1000)}</tspan></text>`;
+  });
+  // 4 额度窗口：起点 → 重置
+  lane('pool', '额度窗口');
+  const PL = [[D.pools[0], 19, 24, .81], [D.pools[1], 22.97, 27.97, 1], [D.pools[2], -1, 99, 1]];
+  PL.forEach(([p, a, b, f], i) => {
+    const y = BAND.pool[0] + i * 26 + (i === 2 ? 4 : 0), x0 = X(Math.max(a, 0)), x1 = X(Math.min(b, HRS)), xn = X(NOW);
+    s += `<line x1="${x0}" x2="${x1}" y1="${y + 10}" y2="${y + 10}" stroke="rgb(255 255 255/.12)" stroke-width="${i === 2 ? 3 : 6}" stroke-linecap="round"/>`;
+    s += `<line x1="${x0}" x2="${Math.max(x0, xn)}" y1="${y + 10}" y2="${y + 10}" stroke="${i ? 'rgb(255 255 255/.32)' : '#3987e5'}" stroke-width="${i === 2 ? 3 : 6}" stroke-linecap="round"/>`;
+    if (b <= HRS) s += `<path d="M${x1},${y + 3} l7,7 l-7,7 l-7,-7z" fill="var(--background)" stroke="var(--fg-2)" stroke-width="1.3"/><text x="${x1 + 14}" y="${y + 14}" style="fill:var(--fg-2);font-size:12px">${p.at} 重置</text>`;
+    else s += `<text x="${X(HRS)}" y="${y + 1}" text-anchor="end" style="fill:var(--fg-3);font-size:12px">${p.at} 重置 →</text>`;
+    const lbl = `${p.logos.length > 1 ? 'Claude / GPT' : p.short === '每周' ? '每周 Gemini' : 'Gemini'} · 剩 ${Math.round(f * 100)}%`;
+    const lx = i === 2 ? G : x0 - 10;
+    s += `<text x="${lx}" y="${i === 2 ? y + 1 : y + 14}" text-anchor="${i === 2 ? 'start' : 'end'}" style="fill:var(--fg-3);font-size:12px">${i === 2 ? '' : ''}${lbl}</text>`;
+  });
+  // 现在
+  s += `<line x1="${X(NOW)}" x2="${X(NOW)}" y1="0" y2="${BAND.pool[1]}" stroke="rgb(255 255 255/.5)" stroke-dasharray="2 3"/>
+    <rect x="${X(NOW) - 22}" y="${H - 18}" width="44" height="18" rx="5" fill="var(--fg)"/><text x="${X(NOW)}" y="${H - 5}" text-anchor="middle" style="fill:#000;font-size:11.5px;font-weight:550">11:00</text>
+    <text x="${X(NOW) + 10}" y="${BAND.cache[0] + 2}" style="fill:var(--fg-4);font-size:11.5px">接下来 6 小时</text>`;
+  // 洞察标记
+  const mark = (n, x, y) => s += `<circle cx="${x}" cy="${y}" r="10" fill="var(--background)" stroke="${n === 2 ? '#fff' : 'rgb(255 255 255/.4)'}"/><text x="${x}" y="${y + 4}" text-anchor="middle" style="fill:var(--fg);font-size:11.5px">${n}</text>`;
+  mark(1, X(9), BAND.sess[0] - 4);
+  mark(2, X(17.5), ty(1020) - 18);
+  mark(3, X(19.5), cy(.55) - 16);
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible;margin-top:22px">${s}</svg>`;
+}
+mount(`
+<div class="say">近 24 小时用了 <b class="num">5.16M</b> tokens，约 <b class="num">$35.8</b>；缓存命中 <b class="num">95.1%</b>。<br>
+<span class="chipv">${LG('gemini', 16)}</span> Gemini 还剩 <b class="num">81%</b>，<b class="num">1 小时</b>后重置。</div>
+${canvas()}
+<div class="nts">
+  ${D.ins.map((x, i) => `<div class="nt ${i === 1 ? 'hov' : ''}"><span class="badge">${i + 1}</span><div><div>${x.h}</div><div class="d num">${x.d}</div></div></div>`).join('')}
+</div>`);
+</script></body></html>

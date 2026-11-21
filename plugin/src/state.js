@@ -5,6 +5,7 @@ const st = {
   q: { f: 'used', prov: null, s: '', open: null, pins: new Set(['gemini-4-neon-high', 'claude-opus-5-5-high', 'gemini-4-neon-xhigh']) },
   lg: { sort: 't', dir: -1, sel: null, s: '', miss: false, big: false, limit: 60, bucket: null },
   acc: { cur: 0, sw: null, step: 0, open: null, wait: true }, tz: 'auto',
+  rep: { week: false, on: true, at: '18:30', last: '' }, ctype: 'bar',
   chat: { aux: true, pop: null, model: 'gemini-4-neon-high' },
 };
 

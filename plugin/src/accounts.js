@@ -16,31 +16,62 @@ function calGrid() {
     <svg width="${lx + weeks * (cs + gap)}" height="${ty + 7 * (cs + gap)}" style="display:block;max-width:100%">${g}</svg>
     <div class="row" style="margin-top:10px;font-size:12.5px;color:var(--fg-3);gap:16px"><span>${ds.length} 天有活动</span><span>最长连续 ${best} 天</span>${top ? `<span>最忙的一天 ${fD(top[0] * 86400 - TZ + 43200)} · ${fUSD(top[1].cost)}</span>` : ''}<span class="sp"></span><span class="row" style="gap:4px;color:var(--fg-4)">少${steps.map(c => `<i style="width:11px;height:11px;border-radius:3px;background:${c}"></i>`).join('')}多</span></div>`;
 }
+// 本月每天的花费：面积 + 末端标数值
+function monthArea(W, H = 220) {
+  const m0 = monthStart(NOW), nd = Math.floor((day0() - m0) / 86400) + 1, v = Array.from({ length: nd }, (_, i) => agg(rowsAB(m0 + i * 86400, m0 + (i + 1) * 86400)));
+  const c = v.map(x => x.cost), mx = Math.max(...c, .01) * 1.15, X = i => nd < 2 ? W / 2 : i / (nd - 1) * W, Y = x => H - 22 - x / mx * (H - 34), pts = c.map((x, i) => [X(i), Y(x)]);
+  if (nd < 2) return '<div class="cap">本月数据还不够画图</div>';
+  const d = curve(pts), e = pts[pts.length - 1];
+  return `<svg width="${W + 90}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)"><defs><linearGradient id="ma" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E7CF6" stop-opacity=".55"/><stop offset="1" stop-color="#4C8DF6" stop-opacity=".04"/></linearGradient><linearGradient id="ml" x1="0" x2="1"><stop offset="0" stop-color="#4C8DF6"/><stop offset="1" stop-color="#C76BD9"/></linearGradient></defs>
+    <line x1="0" x2="${W}" y1="${H - 22}" y2="${H - 22}" style="stroke:${ink(.14)}"/><path d="${d}L${W},${H - 22}L0,${H - 22}Z" fill="url(#ma)"/><path d="${d}" fill="none" stroke="url(#ml)" stroke-width="2.2"/>
+    <circle cx="${e[0]}" cy="${e[1]}" r="4.5" fill="#C76BD9" style="stroke:var(--background)" stroke-width="2.5"/><text x="${e[0] + 12}" y="${e[1] + 5}" style="fill:var(--fg);font-size:15px;font-weight:450">${fUSD(c[nd - 1])}</text><text x="${e[0] + 12}" y="${e[1] + 22}">今天</text>
+    ${v.map((x, i) => `<rect x="${(X(i) - W / nd / 2).toFixed(1)}" y="0" width="${(W / nd).toFixed(1)}" height="${H - 22}" fill="transparent" ${tipA(`${fD(m0 + i * 86400)} ${WD[L(m0 + i * 86400).getUTCDay()]}<br>约 ${fUSD(x.cost)} · ${fmt(x.in + x.out)} · ${comma(x.n)} 次`)}/>`).join('')}
+    ${[0, Math.floor((nd - 1) / 2), nd - 1].map(i => `<text x="${X(i)}" y="${H - 4}" text-anchor="${i === 0 ? 'start' : i === nd - 1 ? 'end' : 'middle'}">${fD(m0 + i * 86400)}</text>`).join('')}</svg>`;
+}
+// 其他账号：最近一次看到的额度（重置时刻已过的视为已恢复）
+const accPools = e => (e.pools || []).map(p => { const done = p.t <= NOW; return { ...p, f: done ? 1 : p.f, done }; });
+function accRow(e) {
+  const ps = accPools(e), worst = ps.length ? Math.min(...ps.map(p => p.f)) : null, next = ps.filter(p => !p.done && p.f < 1).sort((a, b) => a.t - b.t)[0];
+  const ago = e.seen ? Math.max(1, Math.round((Date.now() - e.seen) / 60000)) : null, agoS = ago == null ? '' : ago < 60 ? `${ago} 分钟前` : ago < 1440 ? `${Math.round(ago / 60)} 小时前` : `${Math.round(ago / 1440)} 天前`;
+  const on = st.acc.ask === e.email;
+  return `<div class="ar ${on ? 'hov' : ''}"><span class="av sm" style="background:linear-gradient(135deg,${accCol(e.email)})">${esc((e.name || e.email)[0].toUpperCase())}</span>
+    <div style="min-width:0;flex:1"><div class="em el">${esc(e.email)}</div><div class="meta" style="margin-top:3px">${e.saved ? '' : '<i class="bad"></i>需要重新登录 · '}${esc(e.plan || '')}${agoS ? ` · ${agoS}看到` : ''}</div></div>
+    ${ps.length ? `<span ${tipA(ps.map(p => `${p.provs.map(x => x === 'claude' ? 'Claude' : x === 'openai' ? 'GPT' : 'Gemini').join('/')} · 剩 ${Math.round(p.f * 100)}% · ${p.done ? '已重置' : atLocal(p.t) + ' 重置'}`).join('<br>') + '<br><span class="dim">最近一次使用这个账号时的读数</span>')}>${capsule(worst, worst < 1 ? G3.gemini : grayG(), 90, 6)}</span><span class="pc num">${Math.round(worst * 100)}%</span>` : ''}
+    <span class="num dim" style="width:92px;text-align:right;font-size:12px">${next ? atLocal(next.t) + ' 恢复' : ps.length ? '额度已满' : ''}</span>
+    <span class="btn2" ${A('accAsk', e.email)}>${e.saved ? '切换' : '登录'}</span><span class="ib2" ${A('accDel', e.email)} ${tipA('从 Buddy 移除这个账号')}>${ic('close', 15)}</span></div>`;
+}
+const accCol = e => { const P = [['#4C8DF6', '#8E7CF6'], ['#3FB97D', '#4FC3D9'], ['#E8955E', '#F27A9B'], ['#9D8CFF', '#C76BD9']]; let h = 0; for (const c of e) h = (h * 31 + c.charCodeAt(0)) >>> 0; return P[h % P.length].join(','); };
+function accPop() {
+  const k = st.acc.ask; if (!k) return '';
+  const add = k === '+', list = LIVE.accounts?.list || [], i = add ? 0 : Math.max(0, list.filter(e => !e.active).findIndex(e => e.email === k)), top = add ? 40 : 92 + i * 62;
+  const li = (icn, t, w) => `<div class="li ${w ? 'w' : ''}">${ic(icn, 16)}<span>${t}</span></div>`;
+  return `<div class="pop2" style="top:${top}px">
+    <h4>${add ? '添加账号' : `切换到 ${esc(k)}`}</h4>
+    ${li('warning', 'Antigravity 会关闭并重新打开，正在生成的回复会中断', 1)}
+    ${add ? li('login', '重新打开后是登录页，用另一个 Google 账号登录即可') + li('bookmark_added', '当前账号已保存，随时可以切回来') : li('key', '用已保存的登录，不需要重新输入密码') + li('history', '会话、项目和设置都保留')}
+    <div class="ft"><span class="dim" style="font-size:12px">约 10 秒</span><span class="row" style="gap:8px"><span class="btn2" ${A('accAsk', '')}>取消</span><span class="btn2 p" ${A(add ? 'accAdd' : 'accGo', k)}>${add ? '重启并登录' : '切换'}</span></span></div></div>`;
+}
 function vAccounts() {
-  const a = ACC[0], day0 = Math.floor((NOW + TZ) / 86400) * 86400 - TZ, mo0 = day0 - (L(NOW).getUTCDate() - 1) * 86400;
-  const u = [['今天', day0], ['近 7 天', day0 - 6 * 86400], ['本月', mo0]].map(([l, t0]) => { const g = agg(ROWS.filter(r => r.t >= t0)); return [l, g.in + g.out, g.cost, g.n]; });
-  const mx = Math.max(u[2][1], 1), first = ROWS.length ? fD(ROWS[0].t) : '—';
-  const cr = (l, x, y) => `<div style="flex:1"><div class="lbl">${l}</div><div class="big num">${credit(x, y)}</div><div style="margin-top:14px">${x != null && y ? qm(x / y, '100%') : ''}</div></div>`;
-  const todo = (i, t, d) => `<div class="row" style="gap:12px;align-items:flex-start;padding:9px 0"><span style="color:var(--fg-3);margin-top:1px">${ic(i, 17)}</span><div style="flex:1"><div class="row" style="gap:8px">${t}<span class="pill">尚未实现</span></div></div></div>`;
-  return shell(sub() + `<div class="body">
-    <div class="row" style="gap:14px"><span class="who" style="width:40px;height:40px;font-size:16px;background:${a.c}">${a.l}</span><div><div class="row" style="gap:8px;font-size:16px;font-weight:var(--w-medium)">${a.n}${planTag(a)}</div><div class="dim" style="margin-top:2px">${a.e}</div></div>
-      <span class="sp"></span><span class="pill ${LIVE.error ? '' : 'ok'}">${LIVE.error ? '未连接' : '使用中'}</span></div>
-    <div class="hr"></div>
-    ${calGrid()}
-    <div class="hr"></div>
-    <div class="cols" style="grid-template-columns:1fr 1fr">
-      <div><div class="h"><h3>额度窗口</h3><div class="x">${tzLabel()}</div></div>
-        ${WINS.map((w, k) => `<div class="row" style="height:34px;gap:12px"><span class="dim" style="width:132px;white-space:nowrap">${w.short}</span><span style="flex:1">${bar(winUse(k).u, winUse(k).col)}</span><span class="num r" style="width:44px">${Math.round(winUse(k).u * 100)}%</span><span class="num r dim" style="width:150px;font-size:13px">${winAt(k)} <span class="dim2">· ${winCd(k)}</span></span></div>`).join('') || '<div class="cap">读不到模型额度</div>'}
+  const a = ACC[0], d0 = day0(), m0 = monthStart(NOW), W5 = SPANW(5), others = (LIVE.accounts?.list || []).filter(e => !e.active);
+  if (st.acc.busy) return shell(sub() + `<div class="body h2"><div class="pg" style="height:70vh;display:grid;place-items:center;text-align:center">${aura()}<div><div class="hi" style="font-size:28px">正在切换到 ${esc(st.acc.busy)}</div><div class="say" style="margin-top:10px">Antigravity 即将关闭并重新打开，约 10 秒。</div></div></div></div>`);
+  const u = [['今天', d0], ['近 7 天', d0 - 6 * 86400], ['本月', m0]].map(([l, t0]) => [l, agg(ROWS.filter(r => r.t >= t0))]), mo = u[2][1];
+  return shell(sub() + `<div class="body h2"><div class="pg">${aura()}
+    <section class="rw">
+      <div class="md" style="grid-column:span 5">
+        <div class="lb">当前账号</div>
+        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${planTag(a)}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
+        ${WINS.map((w, k) => { const v = poolView(k); return `<div class="cr num"><span class="row" style="gap:6px">${winLogos(w).map(l => `<img src="${LOGO[l]}" style="width:14px;height:14px">`).join('')}${w.kind} · ${w.who}</span><b>${v.x.ok ? `剩 ${fUSD(v.x.leftCost)}` : pctS(v.x.f)}<span style="color:var(--fg-4)"> · ${winAt(k)}</span></b></div><div ${tipA(v.tip)}>${capsule(v.x.f, v.x.f < 1 ? winG(w) : grayG(), W5, 12)}</div>`; }).join('') || '<div class="cap">读不到模型额度</div>'}
       </div>
-      <div><div class="h"><h3>用量</h3></div>
-        ${u.map(([l, tok, cost, n]) => `<div class="row" style="height:38px;gap:14px;border-bottom:1px solid var(--border)"><span class="dim" style="width:60px">${l}</span><span style="flex:1">${bar(tok / mx, 'var(--s1)')}</span><span class="num r dim" style="width:70px;font-size:13px">${comma(n)} 次</span><span class="num r" style="width:70px">${fmt(tok)}</span><span class="num r" style="width:70px;font-weight:var(--w-medium)">${fUSD(cost)}</span></div>`).join('')}
+      <div class="md" style="grid-column:7 / span 6;position:relative">
+        <div class="hd"><span class="lb">其他账号 · 点切换会重启 Antigravity</span><span class="lk" style="font-size:12.5px" ${A('accAsk', '+')}>${ic('add', 15)}添加账号</span></div>
+        ${others.length ? others.map(e => accRow(e)).join('') : `<div class="cap" style="margin-top:14px;line-height:1.7">还没有其他账号。点「添加账号」，Antigravity 会重启到登录页，登录另一个 Google 账号后 Buddy 会自动记下它，之后一键切换。</div>`}
+        ${accPop()}
+        <div class="ur" style="border:0;height:auto;margin-top:22px;gap:24px">${u.map(([l, g]) => `<div><div class="lb">${l}</div><div class="kn num" style="font-size:22px;margin-top:6px">${fUSD(g.cost)}</div><div class="num dim" style="font-size:12px;margin-top:4px">${fmt(g.in + g.out)} · ${comma(g.n)} 次</div></div>`).join('')}</div>
       </div>
-    </div>
-    <div class="hr"></div>
-    <div class="h"><h3>计划中</h3></div>
-    <div class="cols" style="grid-template-columns:1fr 1fr">
-      ${todo('swap_horiz', '多账号与切换', '')}
-      ${todo('hub', '按账号固定出口 IP', '')}
-    </div>
-  </div>`);
+    </section>
+    <section class="rw"><div class="md" style="grid-column:1/-1">
+      <div class="hd" style="align-items:flex-end"><div><div class="lb">本月 · 每天花费</div><div class="kn num" style="margin-top:10px;font-size:40px">${fUSD(mo.cost)} <span style="font-size:15px;color:var(--fg-3);letter-spacing:0">${fmt(mo.in + mo.out)} tokens · ${comma(mo.n)} 次</span></div></div></div>
+      <div style="margin-top:16px">${monthArea(SPANW(12) - 90)}</div>
+    </div></section>
+  </div></div>`);
 }

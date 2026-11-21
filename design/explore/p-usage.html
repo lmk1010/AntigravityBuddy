@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>用量 · H2 风格</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="rows.css"><link rel="stylesheet" href="light.css">
+<style>
+.mk{padding-bottom:16px;position:relative}
+.mk .kn{margin-top:12px;font-size:40px}
+.mk .d{font-size:12.5px;color:var(--fg-3);margin-top:10px}.mk .d b{font-weight:450;color:#3FB97D}.mk .d b.dn{color:#E8955E}
+.mk.on:after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;border-radius:2px;background:linear-gradient(90deg,#4C8DF6,#8E7CF6,#C76BD9)}
+.mk:not(.on){opacity:.62}
+.sr{display:grid;grid-template-columns:1fr auto;align-items:center;row-gap:8px;margin-bottom:16px}
+.sr .nm{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr .v{font-size:13.5px;text-align:right}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script><script src="kit.js"></script><script src="art.js"></script><script src="ui.js"></script>
+<script>
+UI.tabs(3);
+// 主图：折线 / 柱状 / 面积 三种表现，末端 logo + 数值，竖线旗标标事件，每天一条悬停带
+const DAYS = ['11-14', '11-15', '11-16', '11-17', '11-18', '11-19', '11-20'];
+const SER = [{ l: 'gemini', n: 'gemini-4-neon', c: '#5B9BFF', c2: '#3F78E0', v: [2.1, 3.4, 1.2, .6, 4.8, 6.2, 4.9] }, { l: 'gemini', n: 'gemini-4-hydrogen', c: '#4FC3D9', c2: '#2FA0B8', v: [.4, .9, 1.5, .8, .7, 1.1, .26] }];
+function chart(type = 'line', W = 980, H = 290) {
+  const stacked = type !== 'line', mx = 8, L = 44, n = DAYS.length;
+  const bw = (W - L) / n, X = i => type === 'bar' ? L + bw * (i + .5) : L + i / (n - 1) * (W - L), Y = v => 34 + (1 - v / mx) * (H - 66);
+  let s = '<defs>' + SER.map((se, k) => `<linearGradient id="g${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.c}" stop-opacity="${type === 'area' ? .85 : .25}"/><stop offset="1" stop-color="${se.c2}" stop-opacity="${type === 'area' ? .35 : 0}"/></linearGradient><linearGradient id="b${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.c}"/><stop offset="1" stop-color="${se.c2}"/></linearGradient>`).join('') + '</defs>';
+  [0, 2, 4, 6, 8].forEach(t => s += `<line x1="${L}" x2="${W}" y1="${Y(t)}" y2="${Y(t)}" style="stroke:${UI.ink(t ? .06 : .16)}"/><text x="0" y="${Y(t) + 4}">${t ? t + 'M' : '0'}</text>`);
+  DAYS.forEach((d, i) => s += `<text x="${X(i)}" y="${H - 6}" text-anchor="middle">${i === 6 ? '今天' : d}</text>`);
+  const fx = X(4) + (type === 'bar' ? -bw / 2 : 0);
+  s += `<line x1="${fx}" x2="${fx}" y1="10" y2="${Y(0)}" style="stroke:${UI.ink(.22)}"/><foreignObject x="${fx + 6}" y="0" width="180" height="22"><div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--fg-3);white-space:nowrap">${LG('claude', 12)}Claude Opus 5.5 首次使用</div></foreignObject>`;
+  const base = Array(n).fill(0), ends = [];
+  SER.forEach((se, k) => {
+    const top = se.v.map((v, i) => (stacked ? base[i] : 0) + v);
+    if (type === 'bar') {
+      se.v.forEach((v, i) => { const w = bw * .42, y0 = Y(base[i]), y1 = Y(top[i]); s += `<rect x="${X(i) - w / 2}" y="${y1}" width="${w}" height="${Math.max(0, y0 - y1 - (k ? 2 : 0))}" rx="${k ? 4 : 2}" fill="url(#b${k})"/>`; });
+    } else {
+      const up = top.map((v, i) => [X(i), Y(v)]), d = UI.curve(up);
+      if (type === 'area') { const dn = base.map((v, i) => [X(i), Y(v)]).reverse(); s += `<path d="${d}L${dn[0][0]},${dn[0][1]}${UI.curve(dn).replace(/^M[^C]*/, '')}Z" fill="url(#g${k})"/>`; }
+      else if (k === 0) s += `<path d="${d}L${X(n - 1)},${Y(0)}L${X(0)},${Y(0)}Z" fill="url(#g0)"/>`;
+      s += `<path d="${d}" fill="none" stroke="${se.c}" stroke-width="${type === 'area' ? 1.5 : 2.2}"/>`;
+      if (type === 'line') up.forEach(p => s += `<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="${se.c}" style="stroke:var(--background)" stroke-width="2"/>`);
+    }
+    ends.push([Y(stacked ? (base[n - 1] + top[n - 1]) / 2 : top[n - 1]), se]);
+    if (stacked) top.forEach((v, i) => base[i] = v);
+  });
+  ends.sort((a, b) => a[0] - b[0]).forEach(([y, se], j, arr) => { if (j && y - arr[j - 1][0] < 26) y = arr[j - 1][0] + 26; arr[j][0] = y; s += `<foreignObject x="${W + 14}" y="${y - 13}" width="120" height="26"><div style="display:flex;align-items:center;gap:7px;font-size:16px;font-weight:450;color:var(--fg)">${LG(se.l, 16)}<span class="num">${se.v[n - 1]}M</span></div></foreignObject>`; });
+  DAYS.forEach((d, i) => { const w = (W - L) / n, x = type === 'bar' ? L + w * i : X(i) - w / 2; s += `<rect class="db" data-d="${i}" x="${Math.max(L, x)}" y="0" width="${w}" height="${Y(0)}" fill="transparent" data-tip='<b>${i === 6 ? '今天' : d}</b><br>${SER.map(se => `<i class="k" style="background:${se.c}"></i>${se.n} ${se.v[i]}M`).join('<br>')}<br><span style="color:var(--fg-4)">合计 ${(SER[0].v[i] + SER[1].v[i]).toFixed(1)}M · 点击查看当天明细</span>'/>`; });
+  return `<svg width="${W + 80}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)">${s}</svg>`;
+}
+function heat(W = 528, ch = 21) {
+  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const days = ['五', '六', '日', '一', '二', '三', '今'], L = 22, cw = (W - L) / 24;
+  let s = '';
+  days.forEach((d, r) => { s += `<text x="0" y="${r * (ch + 3) + 12}" style="fill:var(--fg-${r === 6 ? 2 : 4})">${d}</text>`;
+    for (let h = 0; h < 24; h++) { const work = (h >= 9 && h <= 12) || (h >= 14 && h <= 18) || (h >= 20 && h <= 23), wk = r === 1 || r === 2 ? .3 : 1;
+      let v = rnd() < (work ? .7 : .12) * wk ? rnd() * wk : 0; if (r === 6) v = h <= 11 ? [0, .2, 0, 0, 0, .9, .15, 0, 0, 0, .2, .25][h] : -1; if (r === 5 && h >= 19) v = [.6, .9, .75, .65, .05][h - 19];
+      s += `<rect x="${L + h * cw}" y="${r * (ch + 3)}" width="${cw - 3}" height="${ch}" rx="3.5" style="fill:${v < 0 ? 'transparent' : v === 0 ? UI.ink(.05) : `rgb(91 155 255 / ${(.2 + .8 * v).toFixed(2)})`};${v < 0 ? `stroke:${UI.ink(.08)}` : ''}" ${v < 0 ? 'stroke-dasharray="2 2"' : ''}/>`; } });
+  [0, 6, 12, 18].forEach(h => s += `<text x="${L + h * cw}" y="${7 * (ch + 3) + 10}" style="fill:var(--fg-4)">${String(h).padStart(2, '0')}</text>`);
+  return `<svg width="${W}" height="${7 * (ch + 3) + 14}" style="display:block;font-size:11px">${s}</svg>`;
+}
+const SG = [UI.G.gemini, ['#8E7CF6', '#B08CFF', '#C9A8FF'], ['#3FA7C9', '#4FC3D9', '#7FD6E3'], ['#E8955E', '#F2B35B', '#F6C27A'], ['#E66A8C', '#F27A9B', '#F59AB2']];
+const TYPE = UI.q.get('chart') || 'line';
+mount(`<div class="pg" style="position:relative;gap:40px">${UI.aura()}
+  <section class="rw">
+    ${[['真实消耗', '31.4<small>M</small>', '<b>▲ 18%</b> 比前 7 天', 1], ['估算成本', '$218<small>.4</small>', '<b>▲ 12%</b> 比前 7 天'], ['输出', '3.62<small>M</small>', '<b class="dn">▼ 4%</b> 比前 7 天'], ['调用', '2,486<small>次</small>', '<b>▲ 21%</b> 比前 7 天']].map(([l, v, d, on]) => `<div class="md mk ${on ? 'on' : ''}" style="grid-column:span 3"><div class="lb">${l} · 近 7 天</div><div class="kn num">${v}</div><div class="d num">${d}</div></div>`).join('')}
+  </section>
+  <section class="rw" style="height:318px">
+    <div class="md" style="grid-column:1/-1">
+      <div class="row" style="justify-content:space-between"><div class="lb">每天的真实消耗 · 按模型</div><div class="row" style="gap:10px">${UI.ibg([['line', '折线'], ['bar', '柱状'], ['area', '面积']], ['line', 'bar', 'area'].indexOf(TYPE), 'id="ct"')}<span class="ibg"><span class="ib2" data-tip="筛选模型、会话">${UI.icon('filter', 15)}</span></span><span class="seg"><span>24h</span><span class="on">7d</span><span>本月</span></span></div></div>
+      <div style="margin-top:8px" id="cv">${chart(TYPE)}</div>
+    </div>
+  </section>
+  <section class="rw" style="height:206px">
+    <div class="md" style="grid-column:span 6;display:flex;flex-direction:column;justify-content:space-between"><div class="row" style="justify-content:space-between"><div class="lb">会话 · 近 7 天</div><span class="lk" style="font-size:12.5px">全部 23 个${ic('chevron_right', 16)}</span></div>
+      ${[['Casual Greeting', 9.8, 'Neox'], ['Server Deployment And File Transfer', 6.1, 'Neox'], ['Neox UI Design Optimization', 4.7, 'Neox'], ['国考申论实时批改', 3.2, 'PlanMD']].map(([n, v, w], i) => `<div class="sr" style="margin:0"><span class="nm">${n} <span style="color:var(--fg-4);font-size:12px;margin-left:4px">${w}</span></span><span class="v num">${v}M</span><div style="grid-column:1/-1">${UI.capsule(v / 9.8, SG[i], 528, 8)}</div></div>`).join('')}
+    </div>
+    <div class="md" style="grid-column:span 6;display:flex;flex-direction:column;justify-content:space-between"><div class="row" style="justify-content:space-between"><div class="lb">活跃时段 · 近 7 天</div><span class="lb" style="color:var(--fg-4)">最忙 周二 15:00</span></div>${heat()}</div>
+  </section>
+</div>`, `<span class="ctl b">${ic('calendar_today')}近 7 天${ic('expand_more')}</span>`);
+document.querySelectorAll('#ct .ib2').forEach(b => b.onclick = () => { document.querySelectorAll('#ct .ib2').forEach(x => x.classList.remove('on')); b.classList.add('on'); document.getElementById('cv').innerHTML = chart(['line', 'bar', 'area'][b.dataset.i]); });
+if (!UI.q.has('clean')) UI.pin('.db[data-d="5"]', document.querySelector('.db[data-d="5"]').dataset.tip, .5, .7);
+</script></body></html>

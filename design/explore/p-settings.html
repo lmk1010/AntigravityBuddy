@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>设置 · H2 风格</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="rows.css"><link rel="stylesheet" href="light.css">
+<style>
+.sn a{display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:10px;color:var(--fg-2);font-size:13.5px}
+.sn a svg{color:var(--fg-3)}
+.sn a.on{background:var(--selected);color:var(--fg)}.sn a.on svg{color:var(--fg)}
+.sn .h{font-size:12px;color:var(--fg-4);padding:18px 12px 6px;height:auto;margin:0}
+.gb{border-radius:14px;box-shadow:inset 0 0 0 1px var(--card-border);background:var(--muted)}
+body.light .gb{background:#fff}
+.gr2{display:flex;align-items:center;gap:14px;padding:14px 18px;min-height:62px}
+.gr2+.gr2{border-top:1px solid var(--border)}
+.gr2 .t{font-size:13.5px}.gr2 .d{font-size:12.5px;color:var(--fg-3);margin-top:3px}
+.gr2 .ctl2{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ib{width:22px;display:grid;place-items:center;flex:none;color:var(--fg-2)}.ib svg{width:19px;height:19px}
+.tg{width:34px;height:20px;border-radius:10px;background:#2F71E3;position:relative;flex:none}.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgb(0 0 0/.2)}
+.tg.off{background:var(--secondary-h)}.tg.off:after{right:auto;left:2px}
+.dd{height:30px;padding:0 10px 0 12px;border-radius:8px;background:var(--secondary);display:flex;align-items:center;gap:6px;font-size:13px}
+.th{display:flex;gap:14px;padding:4px 18px 18px 54px}
+.th div{text-align:center;font-size:12px;color:var(--fg-3)}
+.th svg{display:block;border-radius:9px;margin-bottom:8px}
+.th .on svg{box-shadow:0 0 0 2px #2F71E3}.th .on{color:var(--fg)}
+.sh{font-size:15px;font-weight:550;margin:30px 0 12px;font-variation-settings:"ROND" 20,"wdth" 94}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script><script src="kit.js"></script><script src="art.js"></script><script src="ui.js"></script>
+<script>
+UI.tabs(6);
+const si = p => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none">${p}</svg>`;
+const IC = {
+  general: TI.settings,
+  bell: '<path d="M4 11V7a4 4 0 0 1 8 0v4l1.25 1.5H2.75z"/><path d="M6.5 14h3"/>',
+  spark: '<path d="M8 1.75l1.4 4.85 4.85 1.4-4.85 1.4L8 14.25 6.6 9.4 1.75 8 6.6 6.6z"/>',
+  data: '<ellipse cx="8" cy="3.75" rx="5.25" ry="2"/><path d="M2.75 3.75v8.5c0 1.1 2.35 2 5.25 2s5.25-.9 5.25-2v-8.5M2.75 8c0 1.1 2.35 2 5.25 2s5.25-.9 5.25-2"/>',
+  info: '<circle cx="8" cy="8" r="6.25"/><path d="M8 7.25v4M8 4.75v.01"/>',
+  clock: '<circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/>',
+  globe: '<circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.7 1.8 2.5 3.9 2.5 6.25S9.7 12.45 8 14.25C6.3 12.45 5.5 10.35 5.5 8S6.3 3.55 8 1.75"/>',
+  coin: '<circle cx="8" cy="8" r="6.25"/><path d="M10 5.75H7.25a1.25 1.25 0 0 0 0 2.5h1.5a1.25 1.25 0 0 1 0 2.5H6M8 4.5v1.25M8 10.75V12"/>',
+  drop: '<path d="M8 1.75s4.25 4.6 4.25 7.5a4.25 4.25 0 0 1-8.5 0c0-2.9 4.25-7.5 4.25-7.5z"/>',
+  reset: '<path d="M2.75 8a5.25 5.25 0 1 0 1.6-3.75"/><path d="M2.75 2.5v2.75H5.5"/>',
+};
+// 外观缩略图：小窗口插画
+const thumb = (k) => { const L = k === 'light', S = k === 'auto'; const bg = L ? '#F4F4F6' : '#111114', pn = L ? '#fff' : '#070708', ln = L ? 'rgb(0 0 0/.08)' : 'rgb(255 255 255/.08)';
+  const win = (x, w, b, p, l) => `<rect x="${x}" y="0" width="${w}" height="72" fill="${b}"/><rect x="${x + 22}" y="8" width="${w - 28}" height="58" rx="5" fill="${p}"/><path d="M${x + 30},52 C${x + 45},30 ${x + 55},48 ${x + 68},36 S${x + 85},44 ${x + w - 12},40 L${x + w - 12},58 L${x + 30},58Z" fill="#5B9BFF" opacity=".8"/><rect x="${x + 30}" y="16" width="26" height="5" rx="2.5" fill="${l}"/><rect x="${x + 6}" y="10" width="11" height="3" rx="1.5" fill="${l}"/><rect x="${x + 6}" y="17" width="11" height="3" rx="1.5" fill="${l}"/>`;
+  return `<svg width="112" height="72" viewBox="0 0 112 72">${S ? `<clipPath id="lh"><rect width="56" height="72"/></clipPath><clipPath id="rh"><rect x="56" width="56" height="72"/></clipPath><g clip-path="url(#lh)">${win(0, 112, '#F4F4F6', '#fff', 'rgb(0 0 0/.08)')}</g><g clip-path="url(#rh)">${win(0, 112, '#111114', '#070708', 'rgb(255 255 255/.08)')}</g>` : win(0, 112, bg, pn, ln)}<rect width="112" height="72" rx="9" fill="none" stroke="${UI.light ? 'rgb(0 0 0/.1)' : 'rgb(255 255 255/.1)'}"/></svg>`; };
+const ib = (k) => `<span class="ib">${si(IC[k])}</span>`;
+const row = (icon, t, d, ctl) => `<div class="gr2">${icon}<div><div class="t">${t}</div><div class="d">${d}</div></div><div class="ctl2">${ctl}</div></div>`;
+const seg = (a, on) => `<span class="seg">${a.map((x, i) => `<span class="${i === on ? 'on' : ''}">${x}</span>`).join('')}</span>`;
+mount(`<div class="pg" style="position:relative;padding-top:30px">${UI.aura()}
+  <section class="rw">
+    <nav class="md sn" style="grid-column:span 3">
+      ${[['general', '通用', 1], ['bell', '提醒'], ['spark', '原生增强'], ['data', '数据'], ['info', '关于']].map(([k, t, on]) => `<a class="${on ? 'on' : ''}">${si(IC[k])}${t}</a>`).join('')}
+      <div class="h">Buddy 0.1.0 · Antigravity 2.33.0</div>
+    </nav>
+    <div class="md" style="grid-column:4 / span 9">
+      <div class="ttl">通用</div><div class="dsc">显示方式与默认视图，改动立即生效</div>
+      <div class="gb" style="margin-top:22px">
+        <div class="gr2" style="border:0;padding-bottom:10px">${ib('spark', ['#8E7CF6', '#C76BD9'])}<div><div class="t">外观</div><div class="d">跟随 Antigravity 的主题，或单独指定</div></div></div>
+        <div class="th">${[['auto', '跟随系统'], ['dark', '深色'], ['light', '浅色']].map(([k, t]) => `<div class="${(UI.light ? k === 'light' : k === 'dark') ? 'on' : ''}">${thumb(k)}${t}</div>`).join('')}</div>
+        ${row(ib('clock', ['#4C8DF6', '#4FB6E6']), '默认时间范围', '打开 Buddy 时概览、用量、明细使用的范围', seg(['24 小时', '7 天', '本月'], 0))}
+        ${row(ib('globe', ['#3FB97D', '#4FC3D9']), '时区', '重置时间、图表和明细都按这个时区显示', `<span class="dd">GMT-5 · 跟随系统${ic('expand_more', 16)}</span>`)}
+        ${row(ib('coin', ['#E8955E', '#F2B35B']), '积分显示', '概览、账号、辅助面板里同步生效', seg(['500 / 50,000', '1%'], 0))}
+      </div>
+      <div class="sh">提醒</div>
+      <div class="gb">
+        ${row(ib('drop', ['#4C8DF6', '#8E7CF6']), '预计在重置前用完', '按近 3 小时的消耗速率预测', '<span class="tg"></span>')}
+        ${row(ib('reset', ['#3FB97D', '#4FC3D9']), '额度重置时', '重置后提醒可以继续使用', '<span class="tg"></span>')}
+        ${row(ib('bell', ['#E66A8C', '#F27A9B']), '缓存命中率骤降', '低于近 24 小时平均 30 个百分点', '<span class="tg off"></span>')}
+      </div>
+    </div>
+  </section>
+</div>`, '');
+</script></body></html>

@@ -6,7 +6,7 @@ function downloadCsv(rs, name) {
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast(`已导出 ${comma(rs.length)} 条记录`); }
   catch { navigator.clipboard?.writeText(csv).catch(() => {}); toast('无法下载，已把 CSV 复制到剪贴板'); }
 }
-const KEEP = ['range', 'gran', 'cr', 'stack', 'ov', 'fullnum', 'tz', 'metric', 'cal'];
+const KEEP = ['range', 'gran', 'cr', 'stack', 'ov', 'fullnum', 'tz', 'metric', 'cal', 'theme', 'rep', 'ctype'];
 function saveSt() { try { localStorage.setItem('buddy.st', JSON.stringify({ ...Object.fromEntries(KEEP.map(k => [k, st[k]])), qf: st.q.f, pins: [...st.q.pins] })); } catch {} }
 function loadSt() { try { const s = JSON.parse(localStorage.getItem('buddy.st') || 'null'); if (!s) return; KEEP.forEach(k => { if (s[k] !== undefined) st[k] = s[k]; }); if (s.qf) st.q.f = s.qf; if (s.pins) st.q.pins = new Set(s.pins); TZ = TZ_OPT[st.tz] ?? TZ_AUTO; } catch {} }
 let busy = false;
@@ -20,7 +20,7 @@ async function refresh(manual) {
   } catch (e) { if (!LIVE.at) document.getElementById('app').innerHTML = `<div class="pane"><div class="cap" style="padding:80px 0;text-align:center">读不到数据：${esc(e.message)}<br><br><span class="btn" onclick="refresh(true)">重试</span></div></div>`; else if (manual) toast('同步失败：' + e.message); }
   finally { busy = false; }
 }
-Object.assign(ACT, SETTINGS_ACT, FILTER_ACT, TOKENS_ACT, { chat() {}, fmodelGo0() { st.range = '24h'; st.fModel = st.fSess = null; st.tab = 'tokens'; st.metric = 'cost'; }, ovPool(v) { st.ovPool = Number(v); }, fmodelGo(v) { st.fModel = Number(v); st.fSess = null; st.range = 'mo'; st.tab = 'tokens'; st.metric = 'cost'; }, cal(v) { st.cal = v; }, sync() { refresh(true); },
+Object.assign(ACT, SETTINGS_ACT, FILTER_ACT, TOKENS_ACT, REPORT_ACT, ACC_ACT, { ctype(v) { st.ctype = v; }, chat() {}, fmodelGo0() { st.range = '24h'; st.fModel = st.fSess = null; st.tab = 'tokens'; st.metric = 'cost'; }, ovPool(v) { st.ovPool = Number(v); }, fmodelGo(v) { st.fModel = Number(v); st.fSess = null; st.range = 'mo'; st.tab = 'tokens'; st.metric = 'cost'; }, cal(v) { st.cal = v; }, sync() { refresh(true); },
   export() { downloadCsv(st.tab === 'ledger' ? ledgerRows() : rowsIn(), 'buddy-usage.csv'); } });
 Object.keys(ACT).forEach(k => { const f = ACT[k]; ACT[k] = v => { const r = f(v); saveSt(); return r; }; });
 loadSt();
@@ -35,6 +35,6 @@ loadSt();
       if (lastInd && (lastInd.l !== to.l)) { ind.style.transition = 'none'; ind.style.left = lastInd.l + 'px'; ind.style.width = lastInd.w + 'px'; ind.offsetWidth; ind.style.transition = ''; }
       ind.style.left = to.l + 'px'; ind.style.width = to.w + 'px'; lastInd = to; }
     lastTab = st.tab + st.sp; lastOpen = open; lastMenu = st.menu; }; }
-{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
+{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (q.get('theme')) st.theme = Number(q.get('theme')); if (q.get('sel')) setTimeout(() => { const r = ledgerRows()[+q.get('sel')]; if (r) { st.lg.sel = r.idx; render(); } }, 1500); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (LIVE.at) render(); }, 120); });
 refresh(); setInterval(refresh, 30000);

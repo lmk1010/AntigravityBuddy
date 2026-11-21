@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>概览探索 G · 主区 + 右栏</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.body{padding:0;display:grid;grid-template-columns:1fr 320px}
+.mn{display:grid;grid-template-rows:132px auto 1fr;min-width:0}
+.mn>section{padding:20px 28px;border-bottom:1px solid var(--border);min-width:0}
+.mn>section:last-child{border-bottom:0}
+.rl{border-left:1px solid var(--border);display:flex;flex-direction:column}
+.rl>section{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;flex-direction:column}
+.rl>section:last-child{border-bottom:0;flex:1}
+.ch{display:flex;align-items:center;justify-content:space-between;height:20px;font-size:13px;color:var(--fg-3);flex:none}
+.ch h3{color:var(--fg);font-size:14px}.ch .m{font-size:12px;color:var(--fg-4);display:flex;align-items:center;gap:10px}
+.ks{display:grid;grid-template-columns:repeat(4,1fr);padding:0!important}
+.ks>div{padding:20px 22px 0;border-left:1px solid var(--border);position:relative;overflow:hidden}.ks>div:first-child{border-left:0;padding-left:28px}
+.ks .l{font-size:12.5px;color:var(--fg-3);display:flex;align-items:center;gap:6px}
+.ks .v{font-size:26px;font-weight:450;letter-spacing:-.02em;margin-top:8px;line-height:1;font-variation-settings:"ROND" 20,"wdth" 100}
+.ks .v small{font-size:12.5px;color:var(--fg-4);font-weight:350;margin-left:3px;letter-spacing:0}
+.ks .c{font-size:12px;color:var(--fg-4);margin-top:7px}
+.ks .sp2{position:absolute;left:0;right:0;bottom:0}
+table.tb{width:100%;border-collapse:collapse;font-size:13px}
+table.tb th{font-weight:350;color:var(--fg-4);font-size:12px;text-align:left;height:30px;border-bottom:1px solid var(--border);padding:0 8px}
+table.tb td{height:52px;border-bottom:1px solid var(--border);padding:0 8px;white-space:nowrap}
+table.tb tr:last-child td{border-bottom:0}
+table.tb th:first-child,table.tb td:first-child{padding-left:0}table.tb th:last-child,table.tb td:last-child{padding-right:0}
+table.tb .r{text-align:right}
+table.tb tr.hv td{background:var(--hover)}
+.trk{height:4px;border-radius:2px;background:var(--track);overflow:hidden}.trk i{display:block;height:100%;border-radius:2px}
+.pl{padding:11px 0;border-top:1px solid var(--border)}.pl:first-of-type{border-top:0;padding-top:12px}
+.mr{display:grid;grid-template-columns:15px minmax(0,1fr) 34px;gap:10px;align-items:center;height:34px;font-size:13px}
+.ix{display:flex;gap:11px;padding:10px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.45}.ix:first-of-type{border-top:0}
+.ix .ms{font-size:16px;color:var(--fg-3);margin-top:2px}.ix .d{font-size:12px;color:var(--fg-4);margin-top:2px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script><script src="kit.js"></script>
+<script>
+// 7×24 热力：行 = 日期（今天在最下），列 = 时钟小时；今天和昨天下午取自真实读数，其余为演示
+function heat() {
+  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const days = ['周五', '周六', '周日', '周一', '周二', '周三', '今天'], M = days.map(() => Array(24).fill(0));
+  for (let d = 0; d < 5; d++) for (let h = 0; h < 24; h++) { const work = (h >= 9 && h <= 12) || (h >= 14 && h <= 18) || (h >= 20 && h <= 23); const base = d === 1 || d === 2 ? .25 : 1; M[d][h] = rnd() < (work ? .7 : .12) * base ? Math.round(rnd() * (work ? 900 : 300) * base) : 0; }
+  D.hours.forEach(([a, b], i) => { const h = (12 + i) % 24, row = i < 12 ? 5 : 6; M[row][h] = a + b; });
+  const cw = 26.6, chh = 22, g = 4, L = 40;
+  const col = v => v === 0 ? 'rgb(255 255 255/.045)' : `rgb(57 135 229/${(.18 + .82 * Math.min(1, v / 1000)).toFixed(2)})`;
+  let s = '';
+  M.forEach((r, d) => { s += `<text x="0" y="${d * (chh + g) + 15}" style="fill:var(--fg-${d === 6 ? 2 : 4})">${days[d]}</text>`; r.forEach((v, h) => { const fut = d === 6 && h > 11; s += `<rect x="${L + h * (cw + g)}" y="${d * (chh + g)}" width="${cw}" height="${chh}" rx="4" fill="${fut ? 'none' : col(v)}" ${fut ? 'stroke="rgb(255 255 255/.06)" stroke-dasharray="2 3"' : ''}/>`; }); });
+  const nx = L + 11 * (cw + g), ny = 6 * (chh + g);
+  s += `<rect x="${nx - 1.5}" y="${ny - 1.5}" width="${cw + 3}" height="${chh + 3}" rx="5" fill="none" stroke="#fff" stroke-width="1.2"/>`;
+  s += `<rect x="${L + 5 * (cw + g) - 1.5}" y="${ny - 1.5}" width="${cw + 3}" height="${chh + 3}" rx="5" fill="none" stroke="rgb(255 255 255/.5)" stroke-dasharray="2 2"/>`;
+  [0, 3, 6, 9, 12, 15, 18, 21].forEach(h => s += `<text x="${L + h * (cw + g) + cw / 2}" y="${7 * (chh + g) + 12}" text-anchor="middle" style="fill:var(--fg-4)">${String(h).padStart(2, '0')}</text>`);
+  return `<svg width="${L + 24 * (cw + g)}" height="${7 * (chh + g) + 16}" style="display:block;font-size:11.5px">${s}</svg>`;
+}
+const legend = `<span class="row" style="gap:3px">少${[.045, .3, .55, .8, 1].map((o, i) => `<i style="width:10px;height:10px;border-radius:2px;background:${i ? `rgb(57 135 229/${o})` : 'rgb(255 255 255/.045)'}"></i>`).join('')}多</span>`;
+const WS = ['Neox', 'Neox', 'Neox', 'Neox', 'PlanMD'], IO = [[2.66, .34], [.95, .07], [.41, .062], [.37, .044], [.18, .071]];
+const tot = D.hours.map(h => h[0] + h[1]);
+mount(`<div class="mn">
+  <section class="ks">
+    <div><div class="l">真实消耗</div><div class="v num">5.16<small>M</small></div><div class="c num">约 $35.8 · 411 次</div><div class="sp2">${KIT.area(tot, 210, 34, '#3987e5', { pad: 2, op: .22 })}</div></div>
+    <div><div class="l">新增输入 / 输出</div><div class="v num">4.56<small>M</small> <span style="font-size:15px;color:var(--fg-3)">/ 595K</span></div><div class="c">输出占 11.5%</div><div class="sp2">${KIT.area(D.hours.map(h => h[1]), 210, 34, '#d95926', { pad: 2, op: .22 })}</div></div>
+    <div><div class="l">缓存命中</div><div class="v num">95.1<small>%</small></div><div class="c num">复用 89.01M</div><div class="sp2">${KIT.area([.97, .97, .96, .97, .95, .95, .9, .92, .9, .8, .62, .58, .6, .61, .6], 210, 34, '#199e70', { lo: .4, hi: 1, pad: 2, op: .22 })}</div></div>
+    <div><div class="l">活跃会话</div><div class="v num">5<small>个</small></div><div class="c">含 4 个子代理</div><div class="sp2">${KIT.area([0, 0, 1, 2, 2, 1, 1, 1, 2, 1, 1, 2, 1], 210, 34, 'rgb(255 255 255/.5)', { pad: 2, op: .12 })}</div></div>
+  </section>
+  <section>
+    <div class="ch"><h3>活跃时段</h3><span class="m">${legend}<span class="seg"><span>24h</span><span class="on">7d</span><span>本月</span></span></span></div>
+    <div style="margin-top:16px">${heat()}</div>
+    <div class="row" style="gap:18px;margin-top:10px;font-size:12px;color:var(--fg-4)"><span class="row" style="gap:6px"><i style="width:10px;height:10px;border-radius:2px;border:1px solid #fff"></i>现在</span><span class="row" style="gap:6px"><i style="width:10px;height:10px;border-radius:2px;border:1px dashed rgb(255 255 255/.5)"></i>05:00 · 1.00M 新增输入，没命中缓存</span><span style="margin-left:auto" class="num">本周 31.4M · 高峰 周二 15:00</span></div>
+  </section>
+  <section style="display:flex;flex-direction:column">
+    <div class="ch"><h3>会话</h3><span class="m">近 24 小时 · 按真实消耗<span class="lk">用量${ic('chevron_right')}</span></span></div>
+    <table class="tb" style="margin-top:8px"><thead><tr><th>会话</th><th>工作区</th><th class="r">调用</th><th class="r">新增输入</th><th class="r">输出</th><th style="width:210px" class="r">真实消耗</th></tr></thead><tbody>
+      ${D.sessions.map((s, i) => `<tr class="${i === 1 ? 'hv' : ''}"><td style="max-width:230px" class="el">${s.t}${s.kids ? `<span class="dim2" style="font-size:12px;margin-left:6px">${ic('hub', 13)}${s.kids}</span>` : ''}</td><td class="dim">${WS[i]}</td><td class="r num dim">${s.n}</td><td class="r num">${fmtK(Math.round(IO[i][0] * 1000))}</td><td class="r num">${fmtK(Math.round(IO[i][1] * 1000))}</td><td class="r"><span class="row" style="gap:12px;justify-content:flex-end"><span class="trk" style="width:110px"><i style="width:${s.v / 3 * 100}%;background:#3987e5"></i></span><span class="num" style="width:50px">${fmtK(s.v * 1000)}</span></span></td></tr>`).join('')}
+    </tbody></table>
+  </section>
+</div>
+<aside class="rl">
+  <section>
+    <div class="ch"><h3>额度</h3><span class="m">${D.tz}</span></div>
+    ${D.pools.map((p, i) => `<div class="pl"><div class="row" style="gap:7px;font-size:13px">${p.logos.map(l => LG(l, 14)).join('')}<span>${p.name}</span><span class="num" style="margin-left:auto;color:var(--fg-${i ? 3 : 1})">${i ? '100%' : '$20.8 · 81%'}</span></div>
+      <div class="trk" style="margin-top:9px"><i style="width:${p.left * 100}%;background:${i ? 'rgb(255 255 255/.3)' : '#3987e5'}"></i></div>
+      <div class="row num" style="justify-content:space-between;font-size:12px;color:var(--fg-4);margin-top:7px"><span>${p.at} 重置</span><span>${p.cd}</span></div></div>`).join('')}
+  </section>
+  <section>
+    <div class="ch"><h3>模型额度</h3><span class="m"><span class="lk">全部 29 个${ic('chevron_right')}</span></span></div>
+    <div style="margin-top:6px">${D.models.map(m => `<div class="mr">${LG(m.l, 15)}<span class="el">${m.n}</span><span class="num r" style="font-size:12.5px;color:var(--fg-${m.f < 1 ? 2 : 4})">${pctS(m.f)}</span></div>`).join('')}</div>
+  </section>
+  <section>
+    <div class="ch"><h3>洞察</h3><span class="m">3 条</span></div>
+    <div style="margin-top:6px">${D.ins.map(x => `<div class="ix">${ic(x.i)}<div>${x.h}<div class="d num">${x.d}</div></div></div>`).join('')}</div>
+  </section>
+</aside>`);
+</script></body></html>

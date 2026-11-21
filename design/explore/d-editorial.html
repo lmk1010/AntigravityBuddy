@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>概览探索 D · 编辑排版</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.body{padding:34px 44px 24px;display:grid;grid-template-columns:1fr 340px;grid-template-rows:1fr auto;column-gap:56px}
+.kick{font-size:12px;letter-spacing:.14em;color:var(--fg-4);display:flex;align-items:center;gap:10px}
+.kick:after{content:"";flex:1;height:1px;background:var(--border)}
+.hl{font-size:44px;line-height:1.16;font-weight:450;letter-spacing:-.025em;margin-top:18px;font-variation-settings:"ROND" 20,"wdth" 100}
+.hl em{font-style:normal;color:#6aa3ec}
+.deck{font-size:15px;line-height:1.7;color:var(--fg-3);margin-top:14px;max-width:560px}
+.deck b{color:var(--fg-2);font-weight:400}
+.side2{border-left:1px solid var(--border);padding-left:36px;display:flex;flex-direction:column}
+.fig{padding:20px 0;border-bottom:1px solid var(--border)}.fig:first-child{padding-top:0}.fig:last-child{border:0}
+.fig .n{font-size:58px;line-height:1;font-weight:250;letter-spacing:-.035em;font-variation-settings:"ROND" 0,"wdth" 100}
+.fig .n small{font-size:20px;color:var(--fg-4);font-weight:300;letter-spacing:0;margin-left:4px}
+.fig .c{color:var(--fg-3);font-size:13px;margin-top:10px;display:flex;align-items:center;gap:7px}
+.fig .c b{color:var(--fg-2);font-weight:400}
+.ft{grid-column:1 / -1;display:grid;grid-template-columns:1fr 340px;column-gap:56px;border-top:1px solid var(--border);padding-top:16px}
+.fn{display:flex;gap:10px;font-size:13px;color:var(--fg-2);line-height:1.5}
+.fn sup{color:#6aa3ec;font-size:11px;line-height:1.9}
+.fn .d{color:var(--fg-4);font-size:12px}
+.cap{font-size:11.5px;color:var(--fg-4);letter-spacing:.06em;margin-top:6px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script>
+<script>
+// 插画：会话按面积画成圆，压在同一条基线上（包豪斯式构图），面积 = 真实消耗
+function circles(W = 640, H = 290) {
+  const S = D.sessions, k = 108 / Math.sqrt(S[0].v), base = H - 52;
+  const fills = ['#3987e5', '#8fb9f0', 'rgb(255 255 255/.62)', 'rgb(255 255 255/.4)', 'rgb(255 255 255/.24)'];
+  let x = 8, s = '', labels = '';
+  S.forEach((se, i) => {
+    const r = k * Math.sqrt(se.v), cx = x + r;
+    s += i === 0
+      ? `<circle cx="${cx}" cy="${base - r}" r="${r}" fill="#3987e5" fill-opacity=".9"/>` + Array.from({ length: 9 }, (_, j) => `<line x1="${cx - r}" x2="${cx + r}" y1="${base - r * 2 + (j + 1) * r / 5}" y2="${base - r * 2 + (j + 1) * r / 5}" stroke="var(--background)" stroke-opacity=".18" stroke-width="1"/>`).join('')
+      : `<circle cx="${cx}" cy="${base - r}" r="${r}" fill="${fills[i]}" />`;
+    const nm = se.t.length > 12 ? se.t.split(' ')[0] + '…' : se.t; labels += `<text x="${cx}" y="${base + 20}" text-anchor="middle" style="fill:var(--fg-${i ? 3 : 2});font-size:12px">${nm}</text><text x="${cx}" y="${base + 37}" text-anchor="middle" style="fill:var(--fg-4);font-size:11.5px">${fmtK(se.v * 1000)}</text>`;
+    x = cx + r + (i === 0 ? 22 : 12);
+  });
+  s += `<line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="rgb(255 255 255/.22)"/>`;
+  // 右侧的几何装饰：量尺
+  s += `<text x="${W}" y="${base - 2 * k * Math.sqrt(S[0].v) + 10}" text-anchor="end" style="fill:var(--fg-4);font-size:11px;letter-spacing:.08em">面积 = 真实消耗</text>`;
+  return `<svg width="${W}" height="${H}" style="display:block;margin-top:22px;overflow:visible">${s}${labels}</svg>`;
+}
+function strip(W = 640, H = 64) {
+  const bw = W / 24, y = v => H - 4 - v / 1150 * (H - 8);
+  return `<svg width="${W}" height="${H}" style="display:block">${D.hours.map(([a, b], i) => a ? `<rect x="${i * bw + 2}" y="${y(a + b)}" width="${bw - 4}" height="${H - 4 - y(a + b)}" fill="${i >= 17 ? 'rgb(255 255 255/.75)' : 'rgb(255 255 255/.25)'}"/>` : `<rect x="${i * bw + 2}" y="${H - 5}" width="${bw - 4}" height="1" fill="rgb(255 255 255/.15)"/>`).join('')}
+  <line x1="0" x2="${W}" y1="${H - 4}" y2="${H - 4}" stroke="rgb(255 255 255/.22)"/></svg>`;
+}
+const line = (f, c) => `<span style="display:inline-block;width:56px;height:3px;background:rgb(255 255 255/.1);position:relative;vertical-align:middle"><i style="position:absolute;left:0;top:0;bottom:0;width:${f * 100}%;background:${c}"></i></span>`;
+mount(`
+<div>
+  <div class="kick">概览 · 近 24 小时 · 11 月 20 日 11:00</div>
+  <div class="hl">「Casual Greeting」<br>吃掉了 <em>58%</em> 的消耗。</div>
+  <div class="deck">288 次调用、<b>3.00M tokens</b>，几乎都发生在昨晚 19 点到 23 点。剩下的 42% 分散在另外 4 个会话里，其中 <b>Server Deployment</b> 的 1.02M 次之。</div>
+  ${circles()}
+</div>
+<div class="side2">
+  <div class="fig"><div class="n num">$20.8</div><div class="c">${LG('gemini', 13)}Gemini 5 小时还剩 <b>81%</b> ${line(.81, '#3987e5')}</div><div class="c" style="margin-top:4px">12:00 重置 · 1h 00m 后</div></div>
+  <div class="fig"><div class="n num">5.16<small>M</small></div><div class="c">真实消耗 · 约 <b>$35.8</b></div><div class="c" style="margin-top:4px">输入 4.56M · 输出 595K · 411 次调用</div></div>
+  <div class="fig"><div class="n num">95.1<small>%</small></div><div class="c">缓存命中 ${line(.951, '#199e70')}</div><div class="c" style="margin-top:4px">近 6 小时降到 <b>60%</b><sup style="color:#6aa3ec;margin-left:2px">2</sup></div></div>
+</div>
+<div class="ft">
+  <div>${strip()}<div class="cap" style="display:flex;justify-content:space-between"><span>图 · 每小时 TOKENS，亮色为近 6 小时</span><span>昨天 12:00 — 现在</span></div></div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="fn"><sup>1</sup><div>4 次调用没有命中缓存，单次输入超过 100K<div class="d">共 1.10M 新增输入，是最贵的一批调用</div></div></div>
+    <div class="fn"><sup>2</sup><div>近 6 小时缓存命中率 60%，低于平均<div class="d">通常是新开会话或上下文被压缩</div></div></div>
+  </div>
+</div>`);
+</script></body></html>

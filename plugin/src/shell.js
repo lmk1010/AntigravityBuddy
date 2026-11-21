@@ -4,7 +4,7 @@ const TABS = [['overview', '概览'], ['quota', '额度'], ['tokens', '用量'],
 function sub(right = '') {
   const a = ACC[0], bad = LIVE.error;
   return `<div class="sub"><nav class="tabs">${TABS.map(([k, v]) => `<a class="${k === st.tab ? 'on' : ''}" ${A('tab', k)}>${v}</a>`).join('')}<i class="ind"></i></nav>
-  <div class="sub-r">${right}${right ? '<span class="vsep"></span>' : ''}<span class="sync" ${A('sync')} ${tipA(bad ? '读不到 Antigravity 本地接口：' + esc(bad) : '点击立即同步')} style="${bad ? 'color:var(--warn)' : ''}">${ic(bad ? 'warning' : 'sync', 14)}${fT(Math.floor(LIVE.at / 1000)).slice(0, 5)}</span>
+  <div class="sub-r">${right}${right ? '<span class="vsep"></span>' : ''}<span class="sync" ${A('sync')} ${tipA(bad ? '读不到 Antigravity 本地接口：' + esc(bad) : '点击立即同步')} style="${bad ? 'color:var(--warn)' : ''}">${ic(bad ? 'warning' : 'sync', 14)}${fT((Math.floor(LIVE.at / 1000) + SHIFT)).slice(0, 5)}</span>
   <span class="ctl" ${A('tab', 'accounts')}><span class="who" style="background:${a.c}">${a.l}</span>${a.e.split('@')[0]}</span></div></div>`;
 }
 const shell = inner => `<div class="pane">${inner}</div>`;

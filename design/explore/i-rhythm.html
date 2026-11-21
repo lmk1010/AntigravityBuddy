@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>概览探索 I · 节律</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="rows.css">
+<style>.big3{font-size:46px;font-weight:300;letter-spacing:-.035em;line-height:1;margin-top:12px;font-variation-settings:"ROND" 20,"wdth" 100}.big3 small{font-size:16px;color:var(--fg-4);margin-left:3px;letter-spacing:0;font-weight:350}</style>
+</head><body><div id="app"></div>
+<script src="shell.js"></script><script src="art.js"></script>
+<script>
+// 主视觉：411 次调用，每次一个点。横轴 = 时间，点的大小 = 这次的 tokens，颜色 = 会话
+function swarm(W = 1080, H = 300) {
+  const X = t => t / 24 * W, mid = H / 2 - 10, placed = [];
+  const cs = D.calls.map(c => ({ ...c, r: 1.8 + Math.sqrt(c.tok) * 1.05, x: X(c.t) })).sort((a, b) => b.r - a.r);
+  cs.forEach(c => {
+    for (let k = 0; k < 400; k++) {
+      const y = mid + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 1.5;
+      if (!placed.some(p => (p.x - c.x) ** 2 + (p.y - y) ** 2 < (p.r + c.r + 1) ** 2)) { c.y = y; placed.push(c); break; }
+    }
+  });
+  let s = '';
+  for (let i = 0; i <= 24; i += 6) s += `<line x1="${X(i)}" x2="${X(i)}" y1="10" y2="${H - 26}" stroke="rgb(255 255 255/.05)"/>`;
+  s += `<line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="rgb(255 255 255/.06)"/>`;
+  placed.forEach(c => s += `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${c.r.toFixed(1)}" fill="${ART.pal[c.s]}" opacity="${(.55 + .45 * Math.min(1, c.r / 6)).toFixed(2)}"/>`);
+  // 现在
+  s += `<line x1="${X(24)}" x2="${X(24)}" y1="10" y2="${H - 26}" stroke="rgb(255 255 255/.35)" stroke-dasharray="2 4"/>`;
+  [[0, '昨天 12:00'], [6, '18:00'], [12, '00:00'], [18, '06:00'], [24, '现在']].forEach(([i, l]) => s += `<text x="${X(i)}" y="${H - 6}" text-anchor="${i === 24 ? 'end' : i ? 'middle' : 'start'}">${l}</text>`);
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)">${s}</svg>`;
+}
+const strip = (f, n, c) => `<svg width="252" height="10" style="display:block;margin-top:18px">${Array.from({ length: n }, (_, i) => `<rect x="${i * 252 / n}" y="0" width="${252 / n - 3}" height="10" rx="2" fill="${i < Math.round(f * n) ? c : 'rgb(255 255 255/.08)'}" opacity="${i < Math.round(f * n) ? (.45 + .55 * i / n).toFixed(2) : 1}"/>`).join('')}</svg>`;
+// 钟面：阴影扇区 = 从现在到重置
+function clock(at, size = 132, c = '#5B9BFF') {
+  const r = size / 2 - 4, cx = size / 2, cy = size / 2, ang = h => (h % 12) / 12 * 2 * Math.PI - Math.PI / 2;
+  const [hh, mm] = at.split(':').map(Number), t1 = hh + mm / 60, t0 = 11;
+  const p = (h, rr) => [cx + rr * Math.cos(ang(h)), cy + rr * Math.sin(ang(h))];
+  const [x0, y0] = p(t0, r - 6), [x1, y1] = p(t1, r - 6), big = (t1 - t0) > 6 ? 1 : 0;
+  let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgb(255 255 255/.03)" stroke="rgb(255 255 255/.1)"/>`;
+  s += `<path d="M${cx},${cy} L${x0},${y0} A${r - 6},${r - 6} 0 ${big} 1 ${x1},${y1}Z" fill="${c}" opacity=".28"/>`;
+  for (let i = 0; i < 60; i++) { const a = i / 60 * 2 * Math.PI, l = i % 5 ? 3 : 7; s += `<line x1="${cx + (r - 2) * Math.cos(a)}" y1="${cy + (r - 2) * Math.sin(a)}" x2="${cx + (r - 2 - l) * Math.cos(a)}" y2="${cy + (r - 2 - l) * Math.sin(a)}" stroke="rgb(255 255 255/${i % 5 ? .14 : .4})"/>`; }
+  const [hx, hy] = p(t1, r * .5), mA = mm / 60 * 2 * Math.PI - Math.PI / 2, [nx, ny] = p(t0, r * .5);
+  s += `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="rgb(255 255 255/.35)" stroke-width="2" stroke-linecap="round"/>`;
+  s += `<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="${c}" stroke-width="3" stroke-linecap="round"/><line x1="${cx}" y1="${cy}" x2="${cx + r * .72 * Math.cos(mA)}" y2="${cy + r * .72 * Math.sin(mA)}" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="3.5" fill="${c}"/>`;
+  return `<svg width="${size}" height="${size}" style="display:block">${s}</svg>`;
+}
+// 周环：7 段，今天（周四）到周五重置
+function week(size = 132, c = '#9D8CFF') {
+  const r = size / 2 - 8, cx = size / 2, cy = size / 2, days = ['五', '六', '日', '一', '二', '三', '四'];
+  let s = '';
+  days.forEach((d, i) => { const a0 = i / 7 * 2 * Math.PI - Math.PI / 2 + .05, a1 = (i + 1) / 7 * 2 * Math.PI - Math.PI / 2 - .05, past = i < 6;
+    s += `<path d="M${cx + r * Math.cos(a0)},${cy + r * Math.sin(a0)} A${r},${r} 0 0 1 ${cx + r * Math.cos(a1)},${cy + r * Math.sin(a1)}" fill="none" stroke="${i === 6 ? c : past ? 'rgb(157 140 255/.35)' : 'rgb(255 255 255/.1)'}" stroke-width="${i === 6 ? 8 : 6}" stroke-linecap="round"/>`;
+    const am = (i + .5) / 7 * 2 * Math.PI - Math.PI / 2; s += `<text x="${cx + (r - 22) * Math.cos(am)}" y="${cy + (r - 22) * Math.sin(am) + 4}" text-anchor="middle" style="font-size:11px;fill:var(--fg-${i === 6 ? 1 : 4})">${d}</text>`; });
+  s += `<circle cx="${cx + r * Math.cos(-Math.PI / 2 + .05)}" cy="${cy + r * Math.sin(-Math.PI / 2 + .05)}" r="4" fill="#fff"/>`;
+  return `<svg width="${size}" height="${size}" style="display:block">${s}</svg>`;
+}
+const legend = D.sessions.map((s, i) => `<span class="row" style="gap:8px;font-size:12.5px;color:var(--fg-${i ? 3 : 2})"><i style="width:9px;height:9px;border-radius:50%;background:${ART.pal[i]}"></i>${s.t.length > 24 ? s.t.slice(0, 22) + '…' : s.t}<span class="num" style="color:var(--fg-4)">${fmtK(s.v * 1000)}</span></span>`).join('');
+mount(`<div class="pg">
+  <section class="rw" style="height:120px">
+    <div class="md" style="grid-column:span 3"><div class="lb">${LG('gemini', 13)}Gemini 5 小时 · 还剩</div><div class="big3 num">$20.8</div>${strip(.81, 24, '#5B9BFF')}</div>
+    <div class="md" style="grid-column:span 3"><div class="lb">${LG('claude', 13)}${LG('openai', 13)}Claude / GPT · 还剩</div><div class="big3 num">100<small>%</small></div>${strip(1, 24, '#F2B35B')}</div>
+    <div class="md" style="grid-column:span 3"><div class="lb">真实消耗 · 近 24 小时</div><div class="big3 num">5.16<small>M</small></div>${strip(.88, 24, '#9D8CFF')}</div>
+    <div class="md" style="grid-column:span 3"><div class="lb">缓存命中</div><div class="big3 num">95.1<small>%</small></div>${strip(.951, 24, '#4FC3D9')}</div>
+  </section>
+  <section class="rw" style="height:340px">
+    <div class="md" style="grid-column:1/-1">
+      <div class="row" style="justify-content:space-between"><div class="lb">411 次调用 · 每个点是一次，越大越贵</div><div class="lb" style="color:var(--fg-4)">约 $35.8</div></div>
+      <div style="margin-top:6px">${swarm()}</div>
+      <div class="row" style="gap:28px;margin-top:4px">${legend}</div>
+    </div>
+  </section>
+  <section class="rw" style="height:150px">
+    ${[['gemini', '5 小时 · Gemini', '12:00', '1 小时后', clock('12:00', 132, '#5B9BFF')], ['claude', '5 小时 · Claude / GPT', '15:58', '4 小时 57 分后', clock('15:58', 132, '#F2B35B')], ['gemini', '每周 · Gemini', '10:58<small style="font-size:16px;margin-left:6px">周五</small>', '6 天 23 小时后', week()]].map(([l, n, t, cd, viz]) => `<div class="md" style="grid-column:span 4;display:flex;gap:24px;align-items:center">${viz}<div><div class="lb">${LG(l, 13)}${n} · 重置</div><div class="big2 num">${t}</div><div class="sub2">${cd}</div></div></div>`).join('')}
+  </section>
+</div>`);
+</script></body></html>

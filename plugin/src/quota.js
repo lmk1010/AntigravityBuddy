@@ -18,11 +18,8 @@ function qDetail(m, colspan) {
 }
 function vQuota() {
   const pm = perModel(), mxAvg = Math.max(...pm.map(p => p.avg), 1e-9), q = st.q.s.toLowerCase(), open = st.q.open && qBy(st.q.open);
-  return shell(sub(`<span class="inp">${ic('search', 16)}<input data-i="qs" placeholder="搜索模型" value="${st.q.s}"><kbd>/</kbd></span>`) + `<div class="body scroll" style="overflow-y:auto">
-    <div class="h"><h3>额度池</h3><div class="x">${tzLabel()}</div></div>
-    <table class="t"><thead><tr><th>池</th><th style="width:210px">已用</th><th class="r" style="width:190px">本窗口已用</th><th class="r" style="width:170px" ${tipA('按「本窗口已花 ÷ 已用比例」推算<br>token 含缓存，按近 24 小时命中率折算')}>估算总额度 ${ic('info', 13)}</th><th class="r" style="width:170px">估算还剩</th><th class="r" style="width:170px">重置</th></tr></thead><tbody>
-      ${WINS.map((w, k) => { const x = winUse(k), no = `<span class="dim2">${x.all ? '样本不足' : '未使用'}</span>`; return `<tr><td>${w.kind} · ${w.who} <span class="dim2" style="font-size:12.5px;margin-left:6px">${w.n} 个模型</span></td><td><span class="row" style="gap:10px"><span style="width:120px">${bar(x.u, x.col)}</span><span class="num">${(x.u * 100).toFixed(x.u < .1 && x.u > 0 ? 1 : 0)}%</span></span></td><td class="r num">${fUSD(x.cost)} <span class="dim">· ${fmt(x.all)}</span></td><td class="r num">${x.ok ? `约 ${fUSD(x.capCost)} <span class="dim">· ${fmt(x.capAll)}</span>` : no}</td><td class="r num">${x.ok ? `约 ${fUSD(x.leftCost)} <span class="dim">· ${fmt(x.leftAll)}</span>` : ''}</td><td class="r num dim">${x.all ? `${winAt(k)} <span class="dim2">· ${winCd(k)}</span>` : '<span class="dim2">—</span>'}</td></tr>`; }).join('')}
-    </tbody></table>
+  return shell(sub(`<span class="inp">${ic('search', 16)}<input data-i="qs" placeholder="搜索模型" value="${st.q.s}"><kbd>/</kbd></span>`) + `<div class="body scroll h2" style="overflow-y:auto">
+    <div class="pg" style="padding:0;margin-bottom:8px">${aura()}${poolRow(30)}</div>
     <div class="hr"></div>
     <div class="h"><h3>还能用几次</h3><div class="x">近 7 天均值</div></div>
     ${pm.length ? pm.map(p => `<div class="row rowh" ${A('usein', MODEL_NAME(p.key))} style="height:38px;gap:14px">${lg(MODEL_NAME(p.key))}<span class="mono el" style="width:230px;color:var(--fg-2)">${MODEL_NAME(p.key)}</span>

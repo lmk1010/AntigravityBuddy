@@ -1,5 +1,5 @@
 /* ===== 动作、渲染、事件 ===== */
-const VIEWS = { overview: vOverview, quota: vQuota, tokens: vTokens, ledger: vLedger, accounts: vAccounts, settings: vSettings };
+const VIEWS = { overview: vOverview, report: vReport, quota: vQuota, tokens: vTokens, ledger: vLedger, accounts: vAccounts, settings: vSettings };
 let toastT;
 function toast(msg) { st.toast = msg; clearTimeout(toastT); toastT = setTimeout(() => { st.toast = null; render(); }, 2600); }
 const num = v => v === '' || v == null ? null : Number(v);
@@ -32,12 +32,14 @@ const ACT = {
   copy(v) { const r = ROWS[v], j = JSON.stringify({ created_at: new Date(r.t * 1000).toISOString(), session: SE[r.s].id, step_index: r.step, model: MODEL_NAME(r.m), input_tokens: r.in, cache_read_tokens: r.cache, output_tokens: r.out, tool_calls: r.tools }, null, 2); navigator.clipboard?.writeText(j).catch(() => {}); toast('已复制这一步的 JSON'); },
   aux() { st.chat.aux = !st.chat.aux; st.chat.pop = null; }, pop(v) { st.chat.pop = st.chat.pop === v ? null : v; return 'keep'; },
   usemodel(v) { st.chat.model = v; st.chat.pop = null; toast(`已换用 ${qBy(v).name}`); },
-  toggle(v) { st[v] = !st[v]; if (v === 'native' && !st.native) st.chat.pop = null; }, theme(v) { st.theme = Number(v); if (st.theme === 2) toast('浅色主题待设计，原型暂只提供深色'); }, credits(v) { st.credits = v; }, alert(v) { st.alert = Number(v); },
+  toggle(v) { st[v] = !st[v]; if (v === 'native' && !st.native) st.chat.pop = null; }, theme(v) { st.theme = Number(v); applyTheme(); }, credits(v) { st.credits = v; }, alert(v) { st.alert = Number(v); },
 };
 function render() {
+  applyTheme();
   const sc = {}; document.querySelectorAll('#lgscroll,#spscroll,.body.scroll').forEach(e => sc[e.id || 'body'] = e.scrollTop);
   const f = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.i, pos = f ? document.activeElement.selectionStart : 0;
-  document.getElementById('app').innerHTML = VIEWS[st.tab]() + (st.toast ? `<div style="position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:9px 14px;font-size:13px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6);white-space:nowrap">${st.toast}</div>` : '');
+  const lightFix = h => isLight() ? h.replace(/rgb\(255 255 255 \/ /g, 'rgb(0 0 0 / ') : h;
+  document.getElementById('app').innerHTML = lightFix(VIEWS[st.tab]()) + (st.toast ? `<div style="position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:9px 14px;font-size:13px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6);white-space:nowrap">${st.toast}</div>` : '');
   const toastEl = document.querySelector('#app > div:last-child'); if (st.toast && toastEl) document.querySelector('.pane').appendChild(toastEl);
   document.querySelectorAll('#lgscroll,#spscroll,.body.scroll').forEach(e => { e.scrollTop = sc[e.id || 'body'] || 0; });
   if (f) { const el = document.querySelector(`[data-i="${f}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch {} } }

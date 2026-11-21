@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>概览探索 A · 单焦点</title>
+<link rel="stylesheet" href="base.css">
+<style>
+.body{padding:28px 40px 24px;display:flex;flex-direction:column}
+.top{display:grid;grid-template-columns:372px 1fr;gap:56px;align-items:center;flex:none}
+.dialw{position:relative;width:372px;height:340px}
+.dialw .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:6px}
+.dialw .v{font-size:56px;font-weight:400;letter-spacing:-.03em;line-height:1;font-variation-settings:"ROND" 20,"wdth" 100}
+.dialw .v small{font-size:22px;color:var(--fg-3);margin-right:2px;vertical-align:18px;letter-spacing:0}
+.pools{display:flex;justify-content:center;gap:4px;margin-top:6px}
+.pools span{white-space:nowrap;display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;font-size:12.5px;color:var(--fg-3)}
+.pools span.on{background:var(--secondary);color:var(--fg)}
+.pools img{opacity:.55}.pools .on img{opacity:1}
+.eyebrow{display:flex;align-items:center;gap:8px;color:var(--fg-3);font-size:13px}
+.head{font-size:30px;line-height:1.3;font-weight:450;letter-spacing:-.015em;margin-top:12px;font-variation-settings:"ROND" 20,"wdth" 100}
+.head em{font-style:normal;color:var(--fg-3)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);margin-top:30px;border-top:1px solid var(--border)}
+.trio>div{padding:16px 20px 0;border-left:1px solid var(--border)}.trio>div:first-child{border-left:0;padding-left:0}
+.trio .n{font-size:24px;font-weight:450;letter-spacing:-.01em;margin-top:4px;font-variation-settings:"ROND" 20,"wdth" 100}
+.trio .n small{font-size:13px;color:var(--fg-4);margin-left:3px}
+.next{margin-top:26px}
+.nx{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;height:30px}
+.nx .lead{border-bottom:1px dotted rgb(255 255 255/.14);height:1px}
+.low{display:grid;grid-template-columns:1fr 300px;gap:48px;margin-top:auto;padding-top:22px;border-top:1px solid var(--border)}
+.where .stk{display:flex;gap:2px;height:8px;margin:4px 0 14px}
+.where .stk i{border-radius:2px}
+.sr{display:grid;grid-template-columns:8px 1fr auto;gap:10px;align-items:center;height:28px;font-size:13px}
+.sr i{width:8px;height:8px;border-radius:2px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script>
+<script>
+// —— 刻度表盘：外圈 = 额度剩余，内圈 = 窗口已过时间，三角 = 按当前速度到重置时的预计剩余
+function dial() {
+  const W = 372, H = 340, cx = W / 2, cy = 172, R = 156, N = 72, a0 = -240, a1 = 60; // 300° 开口朝下
+  const p = D.pools[0], proj = .76;
+  const ang = f => (a0 + (a1 - a0) * f) * Math.PI / 180, pt = (f, r) => [cx + r * Math.cos(ang(f)), cy + r * Math.sin(ang(f))];
+  let ticks = '';
+  for (let i = 0; i <= N; i++) {
+    const f = i / N, on = f <= p.left + 1e-6, major = i % 6 === 0;
+    const [x1, y1] = pt(f, R - (major ? 16 : 11)), [x2, y2] = pt(f, R);
+    const op = on ? .35 + .65 * f / p.left : 1;
+    ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${on ? `rgb(57 135 229/${op.toFixed(2)})` : 'rgb(255 255 255/.10)'}" stroke-width="${major ? 2 : 1.6}" stroke-linecap="round"/>`;
+  }
+  const arc = (f0, f1, r) => { const [x0, y0] = pt(f0, r), [x1, y1] = pt(f1, r); return `M${x0},${y0} A${r},${r} 0 ${(f1 - f0) * 300 > 180 ? 1 : 0} 1 ${x1},${y1}`; };
+  const [px, py] = pt(proj, R + 8), [ex, ey] = pt(p.left, R - 26), [wx, wy] = pt(p.win, R - 30);
+  const tri = (() => { const t = ang(proj), k = 5; const o = [px + Math.cos(t) * 6, py + Math.sin(t) * 6]; return `M${px},${py} L${o[0] + Math.cos(t + 1.57) * k},${o[1] + Math.sin(t + 1.57) * k} L${o[0] - Math.cos(t + 1.57) * k},${o[1] - Math.sin(t + 1.57) * k}Z`; })();
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible">
+    <defs><radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#3987e5" stop-opacity=".10"/><stop offset=".7" stop-color="#3987e5" stop-opacity=".03"/><stop offset="1" stop-color="#3987e5" stop-opacity="0"/></radialGradient></defs>
+    <circle cx="${cx}" cy="${cy}" r="${R - 20}" fill="url(#glow)"/>
+    ${ticks}
+    <path d="${arc(0, 1, R - 30)}" stroke="rgb(255 255 255/.06)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="${arc(0, p.win, R - 30)}" stroke="rgb(255 255 255/.42)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="${wx}" cy="${wy}" r="3.5" fill="#fff" stroke="var(--background)" stroke-width="2"/>
+    <path d="${tri}" fill="var(--fg-3)"/>
+    <text x="${pt(0, R)[0] - 4}" y="${pt(0, R)[1] + 24}" text-anchor="middle" style="font-size:11.5px;fill:var(--fg-4)">0</text>
+    <text x="${pt(1, R)[0] + 4}" y="${pt(1, R)[1] + 24}" text-anchor="middle" style="font-size:11.5px;fill:var(--fg-4)">$${p.cap}</text>
+  </svg>`;
+}
+function spark(vals, color, w = 120, h = 26, area = true) {
+  const mx = Math.max(...vals) || 1, st = w / (vals.length - 1);
+  const pts = vals.map((v, i) => [i * st, h - 2 - v / mx * (h - 4)]);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+  return `<svg width="${w}" height="${h}" style="display:block;margin-top:10px;overflow:visible">${area ? `<path d="${d}L${w},${h}L0,${h}Z" fill="${color}" fill-opacity=".12"/>` : ''}<path d="${d}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/><circle cx="${w}" cy="${pts.at(-1)[1]}" r="2.5" fill="${color}"/></svg>`;
+}
+function tokens(W = 700, H = 196) {
+  const hs = D.hours, mx = 1200, bw = W / 24, top = 18, base = H - 22, y = v => base - v / mx * (base - top);
+  let s = '';
+  hs.forEach(([a, b], i) => {
+    const x = i * bw + bw * .28, w = bw * .44;
+    if (!a && !b) { s += `<rect x="${x}" y="${base - 2}" width="${w}" height="2" rx="1" fill="rgb(255 255 255/.06)"/>`; return; }
+    s += `<rect x="${x}" y="${y(a)}" width="${w}" height="${base - y(a)}" rx="2" fill="var(--s1)"/><rect x="${x}" y="${y(a + b)}" width="${w}" height="${y(a) - y(a + b) - 1.5}" rx="2" fill="var(--s2)"/>`;
+  });
+  const lab = [0, 6, 12, 18, 23].map(i => `<text x="${i * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${i === 23 ? '现在' : D.hourLabel(i) + ':00'}</text>`).join('');
+  // 洞察锚在图上：05:00 那根是缓存没命中的大输入
+  const ax = 17 * bw + bw / 2, ay = y(1020);
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)">
+    <line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--axis)"/>
+    ${s}${lab}
+    <line x1="${ax}" x2="${ax + 26}" y1="${ay - 4}" y2="${ay - 16}" stroke="rgb(255 255 255/.3)"/>
+    <text x="${ax + 30}" y="${ay - 13}" style="fill:var(--fg-2);font-size:12px">缓存没命中，1.00M 新增输入</text>
+  </svg>`;
+}
+const p = D.pools[0];
+const SC = ['var(--s1)', 'rgb(57 135 229/.6)', 'rgb(57 135 229/.38)', 'rgb(57 135 229/.24)', 'rgb(255 255 255/.14)'];
+mount(`
+<div class="top">
+  <div>
+    <div class="dialw">${dial()}<div class="c">
+      <div class="dim" style="font-size:12.5px;margin-bottom:10px">还剩</div>
+      <div class="v num"><small>$</small>${p.usd}</div>
+      <div class="num" style="margin-top:10px;color:var(--fg-2)">81% <span class="dim2">·</span> <span class="dim">${p.at} 重置</span></div>
+    </div></div>
+    <div class="pools">${D.pools.map((q, i) => `<span class="${i ? '' : 'on'}">${q.logos.map(l => LG(l, 13)).join('')}${q.short}${i ? `<span class="dim2 num">${Math.round(q.left * 100)}%</span>` : ''}</span>`).join('')}</div>
+  </div>
+  <div>
+    <div class="eyebrow">${LG('gemini', 14)}5 小时 · Gemini<span class="dim2">·</span><span class="num">已花 $${p.used} / 约 $${p.cap}</span></div>
+    <div class="head">按现在的速度，到 12:00 重置时<br>还会剩 <span class="num">76%</span><em>，不用省着用。</em></div>
+    <div class="trio">
+      <div><div class="lbl">真实消耗</div><div class="n num">${D.real}M<small>约 $${D.cost}</small></div>${spark(D.hours.map(h => h[0] + h[1]), '#3987e5')}</div>
+      <div><div class="lbl">缓存命中</div><div class="n num">${(D.hit * 100).toFixed(1)}<small>%</small></div>${spark([.97,.97,.97,.96,.97,.97,.96,.95,.95,.9,.92,.92,.9,.8,.62,.58,.6,.61,.6].map(v => v - .5), '#199e70', 120, 26, false)}</div>
+      <div><div class="lbl">调用</div><div class="n num">${D.calls}<small>次</small></div>${spark(D.hours.map(h => h[0] ? 8 + h[0] / 60 : 0), 'rgb(255 255 255/.5)')}</div>
+    </div>
+    <div class="next">
+      <div class="lbl" style="margin-bottom:6px">接下来重置</div>
+      ${D.pools.map(q => `<div class="nx"><span class="row" style="gap:3px">${q.logos.map(l => LG(l, 14)).join('')}</span><span class="row" style="gap:12px"><span class="fg2" style="color:var(--fg-2)">${q.name}</span><span class="lead" style="flex:1"></span></span><span class="num">${q.at} <span class="dim2">· ${q.cd}</span></span></div>`).join('')}
+    </div>
+  </div>
+</div>
+<div class="low">
+  <div>
+    <div class="h"><h3>Tokens</h3><div class="x"><span class="lgd"><span><i style="background:var(--s1)"></i>新增输入</span><span><i style="background:var(--s2)"></i>输出</span></span><span class="num">${D.calls} 次调用</span></div></div>
+    ${tokens()}
+  </div>
+  <div class="where">
+    <div class="h"><h3>花在哪</h3><div class="x"><span class="lk">用量${ic('chevron_right')}</span></div></div>
+    <div class="stk">${D.sessions.map((s, i) => `<i style="flex:${s.v};background:${SC[i]}"></i>`).join('')}</div>
+    ${D.sessions.slice(0, 4).map((s, i) => `<div class="sr"><i style="background:${SC[i]}"></i><span class="el" style="color:var(--fg-2)">${s.t}</span><span class="num dim">${Math.round(s.v / D.real * 100)}%</span></div>`).join('')}
+  </div>
+</div>`);
+</script></body></html>

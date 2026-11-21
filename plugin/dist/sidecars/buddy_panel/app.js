@@ -1,6 +1,9 @@
 'use strict';
 /* ===== 数据层：全部来自 /api/data（Antigravity 本地接口 + 会话记录） ===== */
-let U = { models: [], sessions: [], rows: [] }, LIVE = { at: 0 }, NOW = Math.floor(Date.now() / 1000), SE = [], ROWS = [], WINS = [], ACC = [];
+// 演示截图用：?at=16:40 把「现在」挪到今天 16:40（只影响显示，真实数据不会带这个参数）
+const SHIFT = (() => { const a = new URLSearchParams(location.search).get('at'); if (!a) return 0; const [h, m] = a.split(':').map(Number), d = new Date(), t = new Date(d); t.setHours(h, m, 0, 0); return Math.round((t - d) / 1000); })();
+const nowS = () => Math.floor(Date.now() / 1000) + SHIFT;
+let U = { models: [], sessions: [], rows: [] }, LIVE = { at: 0 }, NOW = nowS(), SE = [], ROWS = [], WINS = [], ACC = [];
 const TZ_AUTO = -new Date().getTimezoneOffset() * 60, TZ_OPT = { auto: TZ_AUTO, sh: 8 * 3600, utc: 0 };
 let TZ = TZ_AUTO;
 const tzLabel = () => { const h = TZ / 3600; return 'GMT' + (h >= 0 ? '+' : '') + h; };
@@ -29,7 +32,7 @@ const LOGO = {gemini:'data:image/svg+xml,%3Csvg%20height%3D%221em%22%20style%3D%
 const planTag = a => { if (!a.p) return ''; const t = a.tier || '', cls = /ultra/i.test(t) ? 'ultra' : /team|enterprise|business|hybrid/i.test(t) && !/TEAMS_TIER_PRO\b/.test(t) ? 'team' : /pro/i.test(t) ? 'pro' : /free|standard/i.test(t) ? 'free' : 'std', trial = /trial/i.test(t); return `<span class="pill plan ${cls}${trial ? ' trial' : ''}">${a.p.replace(/\s*TRIAL\s*/i, '')}${trial ? ' · 试用' : ''}</span>`; };
 
 function loadData(p) {
-  LIVE = p; U = p.usage; NOW = Math.floor(Date.now() / 1000);
+  LIVE = p; U = p.usage; NOW = nowS();
   SE = U.sessions.map((s, i) => ({ ...s, i, title: esc(s.title), agent: esc(s.agent) }));
   SE.forEach(s => { const par = s.parent && SE.find(x => x.id === s.parent); s.root = par ? par.i : s.i; s.child = !!par; });
   SE.forEach(s => { if (s.title === '未命名会话') s.title = s.child ? `子代理 · ${s.agent}` : `后台任务 ${s.id}`; });
@@ -54,6 +57,7 @@ const st = {
   q: { f: 'used', prov: null, s: '', open: null, pins: new Set(['gemini-4-neon-high', 'claude-opus-5-5-high', 'gemini-4-neon-xhigh']) },
   lg: { sort: 't', dir: -1, sel: null, s: '', miss: false, big: false, limit: 60, bucket: null },
   acc: { cur: 0, sw: null, step: 0, open: null, wait: true }, tz: 'auto',
+  rep: { week: false, on: true, at: '18:30', last: '' }, ctype: 'bar',
   chat: { aux: true, pop: null, model: 'gemini-4-neon-high' },
 };
 
@@ -158,10 +162,79 @@ const TABS = [['overview', '概览'], ['quota', '额度'], ['tokens', '用量'],
 function sub(right = '') {
   const a = ACC[0], bad = LIVE.error;
   return `<div class="sub"><nav class="tabs">${TABS.map(([k, v]) => `<a class="${k === st.tab ? 'on' : ''}" ${A('tab', k)}>${v}</a>`).join('')}<i class="ind"></i></nav>
-  <div class="sub-r">${right}${right ? '<span class="vsep"></span>' : ''}<span class="sync" ${A('sync')} ${tipA(bad ? '读不到 Antigravity 本地接口：' + esc(bad) : '点击立即同步')} style="${bad ? 'color:var(--warn)' : ''}">${ic(bad ? 'warning' : 'sync', 14)}${fT(Math.floor(LIVE.at / 1000)).slice(0, 5)}</span>
+  <div class="sub-r">${right}${right ? '<span class="vsep"></span>' : ''}<span class="sync" ${A('sync')} ${tipA(bad ? '读不到 Antigravity 本地接口：' + esc(bad) : '点击立即同步')} style="${bad ? 'color:var(--warn)' : ''}">${ic(bad ? 'warning' : 'sync', 14)}${fT((Math.floor(LIVE.at / 1000) + SHIFT)).slice(0, 5)}</span>
   <span class="ctl" ${A('tab', 'accounts')}><span class="who" style="background:${a.c}">${a.l}</span>${a.e.split('@')[0]}</span></div></div>`;
 }
 const shell = inner => `<div class="pane">${inner}</div>`;
+
+/* ===== H2 视觉层：图标页签、主题、12 列网格、插画化图形件 ===== */
+const ink = a => `rgb(var(--ink) / ${a})`;
+const GAP = 24, COLW = () => (CW() - 11 * GAP) / 12, SPANW = k => Math.floor(k * COLW() + (k - 1) * GAP);
+const TI = {
+  overview: '<path d="M1.75 12.25h12.5"/><path d="M4.25 12.25a3.75 3.75 0 0 1 7.5 0"/><path d="M8 3v1.6M3.4 5.1l1.1 1.1M12.6 5.1l-1.1 1.1"/>',
+  report: '<rect x="2" y="2.75" width="12" height="11.5" rx="2.5"/><path d="M2 6.25h12M5.5 1.5v2.5M10.5 1.5v2.5M5.75 10.1l1.5 1.5 3-3"/>',
+  quota: '<rect x="1.75" y="4.75" width="11" height="6.5" rx="3.25"/><path d="M14.25 7v2"/><path d="M4.6 8h3.4" stroke-width="2.4"/>',
+  tokens: '<path d="M1.75 13.25h12.5"/><path d="M4 10.5V8.25M8 10.5V3.5M12 10.5V6"/>',
+  ledger: '<path d="M6 4h8M6 8h8M6 12h5.5"/><circle cx="2.75" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.75" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.75" cy="12" r=".9" fill="currentColor" stroke="none"/>',
+  accounts: '<circle cx="6" cy="5.5" r="2.5"/><path d="M1.75 13.25c.6-2.3 2.3-3.5 4.25-3.5s3.65 1.2 4.25 3.5"/><path d="M10.25 3.2a2.5 2.5 0 0 1 0 4.6M11.75 9.9c1.2.55 2 1.6 2.5 3.35"/>',
+  settings: '<path d="M1.75 5h7M12.25 5h2M1.75 11h2M7.25 11h7"/><circle cx="10.5" cy="5" r="1.75"/><circle cx="5.5" cy="11" r="1.75"/>',
+  line: '<path d="M1.75 12l4-4.5 3 2.5 5.5-6.25"/>', bar: '<path d="M3 13.25V9M8 13.25V3.5M13 13.25V6.5"/>',
+  area: '<path d="M1.75 12.5l4-5 3 2.5 5.5-6v10.25H1.75z" fill="currentColor" fill-opacity=".25"/>',
+  copy: '<rect x="5" y="5" width="9" height="9" rx="2"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/>',
+};
+const icon = (k, s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none">${TI[k]}</svg>`;
+const ibg = (items, cur, act) => `<span class="ibg">${items.map(([v, k, t]) => `<span class="ib2 ${v === cur ? 'on' : ''}" ${A(act, v)} ${tipA(t)}>${icon(k, 15)}</span>`).join('')}</span>`;
+// 覆盖 shell.js 的页签：图标 + 文字
+TABS.splice(0, TABS.length, ['overview', '概览'], ['report', '日报'], ['quota', '额度'], ['tokens', '用量'], ['ledger', '明细'], ['accounts', '账号'], ['settings', '设置']);
+sub = function (right = '') {
+  const a = ACC[0], bad = LIVE.error;
+  return `<div class="sub"><nav class="tabs tabs2">${TABS.map(([k, v]) => `<a class="${k === st.tab ? 'on' : ''}" ${A('tab', k)}>${icon(k)}${v}</a>`).join('')}<i class="ind"></i></nav>
+  <div class="sub-r">${right}${right ? '<span class="vsep"></span>' : ''}<span class="sync" ${A('sync')} ${tipA(bad ? '读不到 Antigravity 本地接口：' + esc(bad) : '点击立即同步')} style="${bad ? 'color:var(--warn)' : ''}">${ic(bad ? 'warning' : 'sync', 14)}${fT((Math.floor(LIVE.at / 1000) + SHIFT)).slice(0, 5)}</span>
+  <span class="ctl" ${A('tab', 'accounts')}><span class="who" style="background:${a.c}">${a.l}</span>${a.e.split('@')[0]}</span></div></div>`;
+};
+// 主题：0 跟随系统，1 深色，2 浅色
+const isLight = () => st.theme === 2 || (st.theme === 0 && matchMedia('(prefers-color-scheme: light)').matches);
+const applyTheme = () => document.body.classList.toggle('light', isLight());
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => { applyTheme(); render(); });
+
+const G3 = { gemini: ['#4C8DF6', '#8E7CF6', '#C76BD9'], claude: ['#D97757', '#E8955E', '#F2B35B'], week: ['#4C8DF6', '#4FB6E6', '#4FC3D9'], cyan: ['#3FA7C9', '#4FC3D9', '#7FD6E3'] };
+const PAL = ['#5B9BFF', '#9D8CFF', '#4FC3D9', '#F2B35B', '#F27A9B', '#7FD6A0'];
+const grayG = () => isLight() ? ['#D5D6DC', '#DCDDE2', '#E3E4E8'] : ['#3A3B42', '#43444B', '#4C4D54'];
+const winG = w => w.kind === '每周' ? G3.week : w.provs.has('gemini') ? G3.gemini : G3.claude;
+const tiles = logos => `<span class="tile">${logos.map(l => `<img src="${LOGO[l]}" style="width:22px;height:22px;display:block">`).join('')}</span>`;
+const winLogos = w => [...w.provs].sort((a, b) => a === 'claude' ? -1 : 1);
+let _cid = 0;
+// 渐变胶囊：f = 填充比例；win = 窗口时间（小三角）
+function capsule(f, g, W, H = 26, win) {
+  const id = 'cp' + (++_cid), fw = f <= 0 ? 0 : Math.max(H, W * Math.min(1, f));
+  let ticks = ''; if (H >= 16 && f < 1) for (let i = 1; i < 20; i++) { const x = i * W / 20; if (x < fw - 6) ticks += `<line x1="${x}" x2="${x}" y1="${H * .25}" y2="${H * .75}" stroke="#fff" stroke-opacity=".28"/>`; }
+  return `<svg width="${W}" height="${H + (win != null ? 12 : 0)}" style="display:block;overflow:visible"><defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="${g[0]}"/><stop offset=".55" stop-color="${g[1]}"/><stop offset="1" stop-color="${g[2]}"/></linearGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+    <rect width="${W}" height="${H}" rx="${H / 2}" style="fill:${ink(.06)}"/>
+    ${fw ? `<rect width="${fw}" height="${H}" rx="${H / 2}" fill="url(#${id})"/><rect x="2" y="2" width="${Math.max(0, fw - 4)}" height="${Math.max(0, H / 2 - 2)}" rx="${Math.max(0, H / 2 - 2)}" fill="url(#${id}s)"/>` : ''}
+    ${ticks}${win != null ? `<path d="M${Math.max(4, W * win)},${H + 4} l4,6 h-8z" style="fill:var(--fg-3)"/>` : ''}</svg>`;
+}
+const curve = pts => { if (!pts.length) return ''; let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`; for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], m = ((x0 + x1) / 2).toFixed(1); d += `C${m},${y0.toFixed(1)} ${m},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`; } return d; };
+const smooth = (v, k = 1) => v.map((_, i) => { let s = 0, w = 0; const n = Math.ceil(k * 2); for (let j = -n; j <= n; j++) { const x = v[i + j]; if (x == null) continue; const g = Math.exp(-(j * j) / (2 * k * k)); s += x * g; w += g; } return s / w; });
+const aura = () => `<div class="aura">${isLight() ? '<i style="left:-120px;top:-180px;width:520px;height:340px;background:#CFE2FF;opacity:.7"></i><i style="right:-80px;top:-140px;width:420px;height:280px;background:#FFE2C4;opacity:.7"></i>' : '<i style="left:-140px;top:-220px;width:560px;height:340px;background:#2F5FB8;opacity:.16"></i><i style="right:-120px;top:-200px;width:460px;height:300px;background:#F2B35B;opacity:.08"></i>'}</div>`;
+const pctS = f => Math.round(f * 100) + '%';
+const unit = s => String(s).replace(/([KMB])$/, '<small>$1</small>');
+// 一个额度池的展示数据：大数字、副标题、脚注
+function poolView(k) {
+  const w = WINS[k], x = winUse(k), used = x.all > 0;
+  return { w, x, k, big: x.ok ? fUSD(x.leftCost) : `${Math.round(x.f * 100)}<small>%</small>`, bigLbl: x.ok ? '剩余' : used ? '剩余比例' : '未使用',
+    foot: x.ok ? [`已用 <b>${fUSD(x.cost)}</b> · 剩 <b>${fUSD(x.leftCost)}</b>`, `共约 ${fUSD(x.capCost)}`] : used ? [`已用 <b>${fUSD(x.cost)}</b>`, '用得太少，暂无法估算总额'] : [`${w.n} 个模型 · 未使用`, '用了才开始计时'],
+    tip: `<b>${w.kind} · ${w.who}</b><br>${x.ok ? `已用 ${fUSD(x.cost)} · 剩约 ${fUSD(x.leftCost)} · 共约 ${fUSD(x.capCost)}<br>` : used ? `已用 ${fUSD(x.cost)}<br>` : '未使用<br>'}剩 ${pctS(x.f)} · ${winAt(k)} 重置（${winCd(k)}）<br><span class="dim">总额按「本窗口已用金额 ÷ 已用比例」推算</span>` };
+}
+const pools3 = () => WINS.map((w, k) => k).sort((a, b) => (WINS[a].kind === '每周') - (WINS[b].kind === '每周') || winUse(a).f - winUse(b).f).slice(0, 3);
+function poolRow(capH = 26) {
+  const ks = pools3(), span = ks.length >= 3 ? 4 : ks.length === 2 ? 6 : 12, W = SPANW(span);
+  if (!ks.length) return `<section class="rw"><div class="md" style="grid-column:1/-1"><div class="cap">读不到模型额度</div></div></section>`;
+  return `<section class="rw">${ks.map(k => { const v = poolView(k); return `<div class="md" style="grid-column:span ${span}" ${A('tab', 'quota')}>
+    <div class="qh">${tiles(winLogos(v.w))}<div style="min-width:0"><div class="n">${v.w.kind} · ${v.w.who}</div><div class="t num">${winAt(k)} 重置 · ${winCd(k)}</div></div><span class="qv"><span class="lb2">${v.bigLbl}</span><span class="kn num">${v.big}</span></span></div>
+    <div style="margin-top:18px" ${tipA(v.tip)}>${capsule(v.x.f, v.x.f < 1 ? winG(v.w) : grayG(), W, capH, v.x.all ? winProg(k) : null)}</div>
+    <div class="qf num"><span>${v.foot[0]}</span><span>${v.foot[1]}</span></div></div>`; }).join('')}</section>`;
+}
 
 // 共用筛选：一个按钮 + 悬浮面板（时间、粒度、厂商、额度池、来源、条件、模型、会话）。概览、用量、明细共用同一份筛选
 const PROVS = [['gemini', 'Gemini'], ['claude', 'Claude'], ['openai', 'GPT'], ['unk', '未标注']];
@@ -218,71 +291,187 @@ function setCustom(k, v) {
   cr[k === 'd0' ? 0 : 1] = t; if (cr[0] > cr[1]) cr.reverse(); st.cr = cr; st.range = 'custom'; st.lg.bucket = null; saveSt();
 }
 
-/* ===== 概览：只回答三件事 —— 还剩多少、花在哪、有什么值得注意（版式沿用原型 v4） ===== */
-// 洞察：全部由当前范围内的真实记录算出，每条都能点进证据
-function insights() {
-  const rs = rowsIn({ noModel: 1, noSess: 1 }), t = agg(rs), real = t.in + t.out, out = [];
-  if (!rs.length) return out;
-  const top = groupBy(rs, 'root').sort((a, b) => b.in + b.out - a.in - a.out)[0];
-  if (top && (top.in + top.out) / real > .3) out.push({ i: 'forum', h: `「${SE[top.key].title}」占了 ${Math.round((top.in + top.out) / real * 100)}% 的真实消耗`, d: `${top.n} 次调用，${fmt(top.in + top.out)} tokens`, a: ['insSess', top.key] });
-  const miss = rs.filter(r => r.cache === 0 && r.in > 100000);
-  if (miss.length) out.push({ i: 'cached', h: `${miss.length} 次调用没有命中缓存，且单次输入超过 100K`, d: `共 ${fmt(miss.reduce((a, r) => a + r.in, 0))} 新增输入，是这段时间最贵的调用`, a: ['insMiss'] });
-  const recent = agg(rs.filter(r => r.t >= NOW - 6 * 3600)), hr = pct(recent.cache, recent.cache + recent.in), ha = pct(t.cache, t.cache + t.in);
-  if (recent.n > 5 && ha - hr > .08) out.push({ i: 'trending_down', h: `近 6 小时缓存命中率 ${Math.round(hr * 100)}%，低于区间平均的 ${Math.round(ha * 100)}%`, d: '通常是新开会话或上下文被压缩', a: ['insHit'] });
-  const kids = rs.filter(r => SE[r.s].child), ka = agg(kids);
-  if (kids.length) out.push({ i: 'hub', h: `${new Set(kids.map(r => r.s)).size} 个子代理用了 ${fmt(ka.in + ka.out)}`, d: '已计入各自的父会话', a: ['insKids'] });
-  const un = rs.filter(r => r.m < 0).length;
-  if (un / rs.length > .2) out.push({ i: 'label_off', h: `${Math.round(un / rs.length * 100)}% 的记录无法确定模型`, d: 'Antigravity 没有写入模型字段，所属会话里也没有可参考的记录', a: ['insUnl'] });
-  return out.slice(0, 4);
+/* ===== 概览：Tokens 地平线 + 三个额度池 + 会话光谱 / 缓存命中 ===== */
+// 主视觉：每个时段的新增输入画成山脊，输出画成前景，远山是总量；最紧张的 5 小时窗口画成太阳弧，太阳在「现在」
+function landscape(bs, rs, W, H = 330) {
+  const G = H - 38, n = bs.length, at = bIdx(bs), B = bs.map(() => []); rs.forEach(r => B[at(r)].push(r));
+  const g = B.map(agg), inp = g.map(x => x.in), out = g.map(x => x.out), tot = g.map(x => x.in + x.out);
+  const mx = Math.max(...tot, 1), X = i => (i + .5) / n * W, sc = (G - 120);
+  const ridge = (vals, k) => { const sm = smooth(vals, n > 30 ? 1.1 : .8), pts = sm.map((v, i) => [X(i), G - v / mx * sc * k]); pts.unshift([0, pts[0][1]]); pts.push([W, pts[pts.length - 1][1]]); return `M0,${G}L${pts[0][0]},${pts[0][1]}${curve(pts).replace(/^M[^C]*/, '')}L${W},${G}Z`; };
+  const L2 = isLight(), s0 = bs[0].a, s1 = bs[n - 1].b, TX = t => (t - s0) / (s1 - s0) * W;
+  let sun = '';
+  const k5 = WINS.map((w, k) => k).filter(k => WINS[k].len === 5 * 3600 && winUse(k).all > 0).sort((a, b) => winUse(a).f - winUse(b).f)[0];
+  if (k5 != null && NOW >= s0 && NOW <= s1 + 60) {
+    const w = WINS[k5], t0 = Math.max(s0, w.t - w.len), a0 = TX(t0), a1 = Math.min(W, TX(w.t)), ar = Math.max(30, (a1 - a0) / 2), cx = a0 + ar, f = Math.max(0, Math.min(1, (NOW - t0) / (w.t - t0))), th = Math.PI * (1 - f), sx = cx + ar * Math.cos(th), sy = G - 40 - ar * .9 * Math.sin(th);
+    sun = `<path d="M${a0},${G - 40} A${ar},${ar * .9} 0 0 1 ${a0 + 2 * ar},${G - 40}" fill="none" style="stroke:${ink(.25)}" stroke-dasharray="1 5" stroke-linecap="round" stroke-width="1.6"/>
+      <circle cx="${sx}" cy="${sy}" r="34" fill="url(#sun)"/><circle cx="${sx}" cy="${sy}" r="7" fill="${L2 ? '#F7A93B' : '#FFF1D2'}"/>
+      <text x="${a0 + 2 * ar - 4}" y="${G - 22}" text-anchor="end" style="fill:var(--fg-2);font-size:12px">${winAt(k5)} 重置</text><text x="${a0 + 4}" y="${G - 22}" style="fill:var(--fg-4);font-size:12px">${atLocal(t0)}</text>`;
+  }
+  let stars = ''; if (!L2) { let sd = 7; const rnd = () => (sd = (sd * 9301 + 49297) % 233280) / 233280; for (let i = 0; i < 46; i++) stars += `<circle cx="${(rnd() * W * .78 + 20).toFixed(0)}" cy="${(rnd() * 150 + 8).toFixed(0)}" r="${(rnd() + .4).toFixed(1)}" fill="#fff" opacity="${(rnd() * .35 + .08).toFixed(2)}"/>`; }
+  const pk = tot.indexOf(Math.max(...tot)), px = X(pk), py = G - smooth(inp, n > 30 ? 1.1 : .8)[pk] / mx * sc - 4;
+  const C = L2 ? { f0: '#7FB0FF', f1: .22, m1: '#D6E6FF', o1: '#FFE9CF', m2: .5, o2: .6 } : { f0: '#5B9BFF', f1: .16, m1: '#2F5FB8', o1: '#D95926', m2: .25, o2: .35 };
+  const every = Math.max(1, Math.ceil(n / 6)), labels = bs.map((b, i) => i % every === 0 && i ? `<text x="${X(i)}" y="${H - 6}" text-anchor="middle">${b.label}${b.label.length <= 2 ? ':00' : ''}</text>` : '').join('');
+  const hits = bs.map((b, i) => `<rect class="hb" x="${(i / n * W).toFixed(1)}" y="0" width="${(W / n).toFixed(1)}" height="${G}" fill="transparent" ${tipA(`<span class="dim">${b.long}</span><br>${sw('#5B9BFF')}新增输入 ${fmt(g[i].in)}<br>${sw('#F2B35B')}输出 ${fmt(g[i].out)}${g[i].n ? `<br><span class="dim">缓存命中 ${Math.round(pct(g[i].cache, g[i].cache + g[i].in) * 100)}% · ${g[i].n} 次 · 约 ${fUSD(g[i].cost)} · 点击查看明细</span>` : ''}`)} ${g[i].n ? A('bucket', b.a + ',' + b.b) : ''}/>`).join('');
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)" class="land"><defs>
+    <linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.f0}" stop-opacity="${C.f1}"/><stop offset="1" stop-color="${C.f0}" stop-opacity=".02"/></linearGradient>
+    <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5B9BFF" stop-opacity=".92"/><stop offset="1" stop-color="${C.m1}" stop-opacity="${C.m2}"/></linearGradient>
+    <linearGradient id="fr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L2 ? '#F7B267' : '#F2B35B'}" stop-opacity=".95"/><stop offset="1" stop-color="${C.o1}" stop-opacity="${C.o2}"/></linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFE6B0"/><stop offset=".35" stop-color="#F2B35B" stop-opacity=".9"/><stop offset="1" stop-color="#F2B35B" stop-opacity="0"/></radialGradient></defs>
+    ${stars}${sun}
+    <path d="${ridge(tot, 1.25)}" fill="url(#far)"/><path d="${ridge(inp, 1)}" fill="url(#mid)"/><path d="${ridge(out.map(v => v * 2.2), 1)}" fill="url(#fr)"/>
+    ${tot[pk] > 0 ? `<line x1="${px}" x2="${px}" y1="${py - 46}" y2="${py}" style="stroke:${ink(.35)}"/><text x="${px > W - 180 ? px - 8 : px + 8}" y="${py - 36}" text-anchor="${px > W - 180 ? 'end' : 'start'}" style="fill:var(--fg-2);font-size:12px">峰值 ${fmt(tot[pk])} · ${bs[pk].long.split(' ').pop().split('–')[0]}</text>` : `<text x="${W / 2}" y="${G / 2}" text-anchor="middle" style="fill:var(--fg-4);font-size:13px">这段时间没有调用</text>`}
+    <line x1="0" x2="${W}" y1="${G}" y2="${G}" style="stroke:${ink(.16)}"/>
+    <text x="0" y="${H - 6}">${bs[0].long.split('–')[0]}</text>${labels}
+    ${hits}</svg>`;
 }
-const provLogos = w => [...w.provs].map(p => lg(p === 'openai' ? 'gpt' : p)).join('');
+// 会话光谱带：宽度 = 真实消耗占比
+function spectrum(ss, total, W, H = 46) {
+  const g = 3, big = ss.slice(0, 2), rest = ss.slice(2); let x = 0, s = '', lab = '';
+  const avail = W - g * Math.max(0, ss.length - 1);
+  ss.forEach((se, i) => {
+    const v = se.in + se.out, w = Math.max(4, avail * v / total), id = 'sp' + i, c1 = PAL[i % PAL.length], c2 = PAL[(i + 1) % PAL.length], r = i === 0 || i === ss.length - 1 ? 12 : 4;
+    s += `<defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}" stop-opacity=".85"/></linearGradient></defs><g class="hit" ${A('insSess', se.key)} ${tipA(`<b>${SE[se.key].title}</b><br>${fmt(v)} · ${pctS(v / total)} · ${comma(se.n)} 次 · 约 ${fUSD(se.cost)}${SE[se.key].kids ? ` · ${SE[se.key].kids} 个子代理` : ''}<br><span class="dim">点击查看这个会话的用量</span>`)}><rect x="${x}" width="${w}" height="${H}" rx="${r}" fill="url(#${id})"/>${i === 0 && ss.length > 1 ? `<rect x="${x + 12}" width="${Math.max(0, w - 12)}" height="${H}" fill="url(#${id})"/>` : ''}${i === ss.length - 1 && i > 0 ? `<rect x="${x}" width="${Math.max(0, Math.min(w, 12) + 4)}" height="${H}" rx="4" fill="${c1}"/>` : ''}</g>`;
+    if (i < 2 && w > 110) lab += `<div style="position:absolute;left:${x}px;top:${H + 12}px;width:${w - 8}px"><div class="el" style="font-size:13px">${SE[se.key].title}</div><div class="num" style="font-size:12px;color:var(--fg-4);margin-top:2px">${fmt(v)} · ${pctS(v / total)}</div></div>`;
+    x += w + g;
+  });
+  if (rest.length) lab += `<div style="position:absolute;right:0;top:${H + 12}px;display:flex;flex-direction:column;gap:3px;align-items:flex-end">${rest.slice(0, 3).map((se, k) => `<div class="row num" style="gap:7px;font-size:12px;color:var(--fg-3)"><i style="width:7px;height:7px;border-radius:2px;background:${PAL[(k + 2) % PAL.length]}"></i><span class="el" style="max-width:150px">${SE[se.key].title}</span><span style="color:var(--fg-4)">${fmt(se.in + se.out)}</span></div>`).join('')}</div>`;
+  return `<div style="position:relative;height:${H + 76}px"><svg width="${W}" height="${H}" style="display:block">${s}</svg>${lab}</div>`;
+}
+// 缓存命中曲线：虚线是区间平均，末端标最近 6 小时
+function cacheLine(bs, rs, W, H = 104) {
+  const at = bIdx(bs), B = bs.map(() => []); rs.forEach(r => B[at(r)].push(r));
+  const v = B.map(x => { const g = agg(x); return g.n ? pct(g.cache, g.cache + g.in) : null; }), pts = [];
+  const all = agg(rs), avg = pct(all.cache, all.cache + all.in), rec = agg(rs.filter(r => r.t >= NOW - 6 * 3600)), rh = rec.n ? pct(rec.cache, rec.cache + rec.in) : null;
+  const lo = Math.max(0, Math.min(...v.filter(x => x != null), avg) - .08), X = i => (i + .5) / bs.length * W, Y = x => 6 + (1 - (x - lo) / (1 - lo || 1)) * (H - 12);
+  v.forEach((x, i) => { if (x != null) pts.push([X(i), Y(x)]); });
+  if (pts.length < 2) return `<div class="cap" style="height:${H}px;display:grid;place-items:center">数据不足</div>`;
+  const d = curve(pts), e = pts[pts.length - 1];
+  return `<svg width="${W - 64}" height="${H}" style="display:block;overflow:visible;font-size:11.5px"><defs><linearGradient id="cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4FC3D9" stop-opacity=".28"/><stop offset="1" stop-color="#4FC3D9" stop-opacity="0"/></linearGradient></defs>
+    <line x1="0" x2="${W - 56}" y1="${Y(avg)}" y2="${Y(avg)}" style="stroke:${ink(.22)}" stroke-dasharray="2 4"/><text x="${W - 60}" y="${Y(avg) - 6}" text-anchor="end" style="fill:var(--fg-4)">平均 ${pctS(avg)}</text>
+    <path d="${d}L${e[0]},${H}L${pts[0][0]},${H}Z" fill="url(#cl)"/><path d="${d}" fill="none" stroke="#4FC3D9" stroke-width="2"/>
+    <circle cx="${e[0]}" cy="${e[1]}" r="4.5" fill="#4FC3D9" style="stroke:var(--background)" stroke-width="2.5"/>
+    ${rh != null ? `<text x="${e[0] + 12}" y="${e[1] + 5}" style="fill:var(--fg);font-size:15px;font-weight:450">${pctS(rh)}</text><text x="${e[0] + 12}" y="${e[1] + 22}" style="fill:var(--fg-4)">近 6h</text>` : ''}</svg>`;
+}
 function vOverview() {
-  const rs = rowsIn(), t = agg(rs), real = t.in + t.out, hit = pct(t.cache, t.cache + t.in), bs = buckets();
-  const rows = bs.map(b => { const g = agg(rs.filter(r => r.t >= b.a && r.t < b.b)); return { label: b.label, parts: [g.in, g.out], act: ['bucket', b.a + ',' + b.b], tip: `<span class="dim">${b.long}</span><br>${sw('var(--s1)')}新增输入 ${fmt(g.in)}<br>${sw('var(--s2)')}输出 ${fmt(g.out)}<br><span class="dim">缓存 ${fmt(g.cache)} · ${g.n} 次调用 · 约 ${fUSD(g.cost)} · 点击查看明细</span>` }; });
-  const prio = m => m.f <= .25 || st.q.pins.has(m.id) ? 0 : 1;
-  const watch = QM.filter(m => m.f < 1 || st.q.pins.has(m.id)).sort((x, y) => prio(x) - prio(y) || x.f - y.f).slice(0, 4);
-  const ss = groupBy(rs, 'root').sort((x, y) => y.in + y.out - x.in - x.out).slice(0, 5), sm = ss.length ? ss[0].in + ss[0].out : 1;
-  const ins = insights();
-  const stat = (act, v, lbl, big, mid, cap) => `<div class="stat" ${A(act, v)}><span class="go">${ic('north_east', 15)}</span><div class="lbl">${lbl}</div><div class="big num">${big}</div><div style="margin-top:14px">${mid}</div><div class="cap num">${cap}</div></div>`;
-  // 前两格：最紧张的两个额度池（剩余最少的在前）。积分接口的数字不会变，不展示
-  const pools = WINS.map((w, k) => ({ w, k, x: winUse(k) })).sort((a, b) => a.x.f - b.x.f).slice(0, 2);
-  const poolStat = ({ w, k, x }) => stat('tab', 'quota', `<span class="row" style="gap:4px">${provLogos(w)}</span>${w.kind} · ${w.who}`,
-    x.ok ? `${fUSD(x.leftCost)}<small>还剩 · ${Math.round(x.f * 100)}%</small>` : `${Math.round(x.f * 100)}<small>%${x.all ? '' : ' · 未使用'}</small>`,
-    qm(x.f, '100%'), `${x.ok ? `已花 ${fUSD(x.cost)} / 约 ${fUSD(x.capCost)}` : x.all ? `已花 ${fUSD(x.cost)}` : `${w.n} 个模型`} · ${winAt(k)} 重置`);
-  const cw = CW() - 388 - 48, every = Math.max(1, Math.ceil(rows.length / Math.floor(cw / 46)));
-  return shell(sub(filters()) + `<div class="body">
-    <div class="cols" style="grid-template-columns:repeat(4,1fr)">
-      ${pools.map(poolStat).join('')}
-      ${pools.length < 2 ? stat('metric', 'cost', '估算成本 · ' + rangeLabel(), fUSD(t.cost), bar(1, 'rgb(255 255 255 / .38)'), `${comma(t.n)} 次调用 · 按 API 公开价`) : ''}
-      ${stat('metric', 'real', `真实消耗 · ${rangeLabel()}`, fmt(real), `<span style="display:flex;height:4px;gap:2px"><span style="flex:${t.in || 1};background:var(--s1);border-radius:2px"></span><span style="flex:${t.out || 1};background:var(--s2);border-radius:2px"></span></span>`, `约 ${fUSD(t.cost)} · 输入 ${fmt(t.in)} · 输出 ${fmt(t.out)}`)}
-      ${stat('metric', 'cache', `缓存命中率 · ${rangeLabel()}`, `${(hit * 100).toFixed(1)}<small>%</small>`, bar(hit, 'var(--s3)'), `复用 ${fmt(t.cache)} · 仅 ${fmt(t.in)} 为新增输入`)}
-    </div>
-    <div class="hr"></div>
-    <div class="cols" style="grid-template-columns:1fr 388px">
-      <div>
-        <div class="h"><h3>Tokens</h3><div class="x"><span class="num">${comma(t.n)} 次调用</span><span class="lgd"><span><i style="background:var(--s1)"></i>新增输入</span><span><i style="background:var(--s2)"></i>输出</span></span>${seg([['24h', '24h'], ['7d', '7d'], ['mo', '本月']], st.range, 'range')}</div></div>
-        ${chart({ rows, colors: ['var(--s1)', 'var(--s2)'], w: cw, h: 222, every, barMax: rows.length > 40 ? 8 : 16 })}
-      </div>
-      <div>
-        <div class="h"><h3>重置时间</h3><div class="x">${tzLabel()}</div></div>
-        ${WINS.map((w, k) => { const b = burn(k, 10, 10); return `<div class="row rowh" ${A('tab', 'quota')} ${tipA(`${w.tip}已过 ${Math.round(winProg(k) * 100)}%<br><span class="dim">${b.note}</span>`)} style="height:32px;gap:12px"><span class="dim el" style="width:112px">${w.kind} · ${w.who}</span><span style="flex:1">${bar(winProg(k), 'rgb(255 255 255 / .38)')}</span><span class="num r" style="width:150px;white-space:nowrap">${winAt(k)} <span class="dim2">· ${winCd(k)}</span></span></div>`; }).join('') || '<div class="cap">读不到模型额度</div>'}
-        <div class="h" style="margin-top:18px"><h3>模型额度</h3><div class="x"><span class="lk" ${A('tab', 'quota')}>全部 ${QM.length} 个${ic('chevron_right')}</span></div></div>
-        ${watch.map(m => `<div class="row rowh" ${A('qopen', m.id)} style="height:33px;gap:10px">${lg(m.id)}<span class="el" style="flex:1">${m.name}</span>${qm(m.f, 64)}<span class="r" style="width:34px;font-size:13px">${pc(m.f)}</span><span class="num r dim2" style="width:60px;font-size:12px">${m.cd}</span></div>`).join('') || '<div class="cap">所有模型都还没用过</div>'}
-      </div>
-    </div>
-    <div class="hr"></div>
-    <div class="cols" style="grid-template-columns:1fr 1.25fr">
-      <div>
-        <div class="h"><h3>会话</h3><div class="x">真实消耗 · 点击筛选</div></div>
-        ${ss.map(g => `<div class="row rowh" ${A('insSess', g.key)} style="height:32px;gap:12px"><span class="el" style="flex:1;color:var(--fg-2)">${SE[g.key].title}</span>${SE[g.key].kids ? `<span class="dim2" style="font-size:12px;display:flex;align-items:center;gap:3px" ${tipA(`含 ${SE[g.key].kids} 个子代理`)}>${ic('hub', 13)}${SE[g.key].kids}</span>` : ''}<span style="width:72px">${bar((g.in + g.out) / sm, 'rgb(255 255 255 / .38)')}</span><span class="num r" style="width:46px;font-size:13px">${fmt(g.in + g.out)}</span></div>`).join('') || '<div class="cap">这段时间没有调用</div>'}
-      </div>
-      <div>
-        <div class="h"><h3>洞察</h3><div class="x">由${rangeLabel()}的记录算出</div></div>
-        ${ins.map(x => `<div class="ins" ${A(x.a[0], x.a[1])}>${ic(x.i, 17)}<div><div>${x.h}</div><div class="dim" style="font-size:12px;margin-top:3px">${x.d}</div></div><span class="go">${ic('chevron_right', 16)}</span></div>`).join('') || '<div class="cap">没有需要注意的情况</div>'}
-      </div>
-    </div>
-  </div>`);
+  const rs = rowsIn(), t = agg(rs), bs = buckets(), hit = pct(t.cache, t.cache + t.in), W = CW();
+  const ss = groupBy(rs, 'root').sort((x, y) => y.in + y.out - x.in - x.out), real = t.in + t.out;
+  return shell(sub(filters()) + `<div class="body h2"><div class="pg">${aura()}
+    <section class="rw" style="height:330px"><div class="md" style="grid-column:1/-1">${landscape(bs, rs, W)}
+      <div class="hero-t" ${A('metric', 'real')}><div class="lb">${rangeLabel()} · Tokens</div><div class="herov num">${unit(fmt(real))}</div><div class="sub2 num">约 ${fUSD(t.cost)} · 输入 ${fmt(t.in)} · 输出 ${fmt(t.out)} · ${comma(t.n)} 次调用</div></div></div></section>
+    ${poolRow()}
+    <section class="rw">
+      <div class="md" style="grid-column:span 8"><div class="hd"><span class="lb">会话 · 按真实消耗</span><span class="lb" style="color:var(--fg-4)">${ss.length} 个会话${(k => k ? ` · 含 ${k} 个子代理` : '')(new Set(rs.filter(r => SE[r.s].child).map(r => r.s)).size)}</span></div>
+        <div style="margin-top:16px">${ss.length ? spectrum(ss.slice(0, 8), real || 1, SPANW(8)) : '<div class="cap">这段时间没有调用</div>'}</div></div>
+      <div class="md" style="grid-column:span 4" ${A('metric', 'cache')}><div class="hd"><span class="lb">缓存命中 · ${rangeLabel()}</span><span class="kn num" style="font-size:28px">${(hit * 100).toFixed(1)}<small>%</small></span></div>
+        <div style="margin-top:16px">${cacheLine(bs, rs, SPANW(4))}</div></div>
+    </section>
+  </div></div>`);
 }
+
+/* ===== 日报 / 周报：今天（或本周）做了什么，与上一段比较；下班提醒 ===== */
+// 工作时长：相邻两次调用间隔不超过 15 分钟算连续工作，每段末尾补 2 分钟
+const GAP_S = 15 * 60;
+function workSpans(rs) {
+  const ts = rs.map(r => r.t).sort((a, b) => a - b), out = [];
+  ts.forEach(t => { const l = out[out.length - 1]; if (l && t - l[1] <= GAP_S) l[1] = t; else out.push([t, t]); });
+  return out.map(([a, b]) => [a, b + 120]);
+}
+const spanSec = sp => sp.reduce((a, [x, y]) => a + y - x, 0);
+const hm = s => `${Math.floor(s / 3600)}<small>h</small> ${hh(Math.floor(s % 3600 / 60))}<small>m</small>`;
+const hmT = s => `${Math.floor(s / 3600)} 小时 ${Math.floor(s % 3600 / 60)} 分`;
+const day0 = () => dayOf(NOW), wk0 = () => day0() - ((L(NOW).getUTCDay() + 6) % 7) * 86400;
+function repRange(week) {
+  const d = day0(), w = wk0();
+  return week ? { a: w, b: NOW + 1, pa: w - 7 * 86400, pb: NOW + 1 - 7 * 86400, name: '本周', prev: '上周同期' } : { a: d, b: NOW + 1, pa: d - 86400, pb: NOW + 1 - 86400, name: '今天', prev: '昨天同时段' };
+}
+const rowsAB = (a, b) => ROWS.filter(r => r.t >= a && r.t < b);
+// 插画：黄昏。活跃曲线是远山，太阳落在下班时刻，水面倒影
+function dusk(rs, W, H = 176) {
+  const d = day0(), G = 126, act = Array(24).fill(0); rs.forEach(r => { const h = Math.floor((r.t - d) / 3600); if (h >= 0 && h < 24) act[h] += r.in + r.out; });
+  let h0 = act.findIndex(v => v > 0); if (h0 < 0) h0 = 9; h0 = Math.max(0, Math.min(h0, 9)); const h1 = Math.max(19, Math.ceil((NOW - d) / 3600));
+  const seg = act.slice(h0, h1), mx = Math.max(...seg, 1), sm = smooth(seg.map(v => v / mx), 1.2), X = i => i / Math.max(1, sm.length - 1) * W;
+  const hill = (k, off) => { const pts = sm.map((v, i) => [X(i), G - v * 58 * k - off - 6]); return `M0,${G}L0,${pts[0][1]}${curve(pts).replace(/^M[^C]*/, '')}L${W},${G}Z`; };
+  const [rh, rm] = (st.rep.at || '18:30').split(':').map(Number), sx = Math.min(W - 50, Math.max(50, ((rh + rm / 60) - h0) / (h1 - h0) * W)), L2 = isLight();
+  let refl = ''; [[0, 104], [8, 78], [16, 54], [24, 32], [32, 16]].forEach(([dy, w]) => refl += `<rect x="${sx - w / 2}" y="${G + 10 + dy}" width="${w}" height="3" rx="1.5" fill="url(#dsun)" opacity="${(.75 - dy / 70).toFixed(2)}"/>`);
+  let stars = ''; if (!L2) { let sd = 3; const rnd = () => (sd = (sd * 9301 + 49297) % 233280) / 233280; for (let i = 0; i < 18; i++) stars += `<circle cx="${(rnd() * W).toFixed(0)}" cy="${(rnd() * 60 + 4).toFixed(0)}" r="${(rnd() * .9 + .4).toFixed(1)}" fill="#fff" opacity="${(rnd() * .4 + .1).toFixed(2)}"/>`; }
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:hidden"><defs>
+    <linearGradient id="dsun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD59A"/><stop offset=".6" stop-color="#F7A35C"/><stop offset="1" stop-color="#F27A9B"/></linearGradient>
+    <radialGradient id="dglow" cx="50%" cy="100%" r="70%"><stop offset="0" stop-color="#F7A35C" stop-opacity=".35"/><stop offset="1" stop-color="#F7A35C" stop-opacity="0"/></radialGradient>
+    <linearGradient id="dh1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E7CF6" stop-opacity=".95"/><stop offset="1" stop-color="#4C8DF6" stop-opacity="${L2 ? .5 : .35}"/></linearGradient>
+    <linearGradient id="dh2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5B9BFF" stop-opacity=".35"/><stop offset="1" stop-color="#5B9BFF" stop-opacity=".05"/></linearGradient>
+    <clipPath id="dup"><rect width="${W}" height="${G}"/></clipPath></defs>
+    ${stars}<ellipse cx="${sx}" cy="${G}" rx="170" ry="70" fill="url(#dglow)" clip-path="url(#dup)"/>
+    ${[78, 102, 128].map((r, i) => `<path d="M${sx - r},${G} A${r},${r} 0 0 1 ${sx + r},${G}" fill="none" stroke="#F2B35B" stroke-opacity="${(.22 - i * .06).toFixed(2)}" ${i ? 'stroke-dasharray="2 6"' : ''}/>`).join('')}
+    <path d="${hill(1.35, 6)}" fill="url(#dh2)"/><circle cx="${sx}" cy="${G + 6}" r="44" fill="url(#dsun)" clip-path="url(#dup)"/><path d="${hill(1, 0)}" fill="url(#dh1)"/>
+    <line x1="0" x2="${W}" y1="${G}" y2="${G}" style="stroke:${ink(.25)}"/>${refl}
+    <text x="0" y="${G + 22}" style="fill:var(--fg-4);font-size:11.5px">${hh(h0)}:00</text><text x="${W}" y="${G + 22}" text-anchor="end" style="fill:var(--fg-4);font-size:11.5px">${hh(h1 % 24)}:00</text></svg>`;
+}
+function vReport() {
+  const week = st.rep.week, R = repRange(week), rs = rowsAB(R.a, R.b), ps = rowsAB(R.pa, R.pb), t = agg(rs), p = agg(ps);
+  const ws = workSpans(rs), wp = workSpans(ps), sec = spanSec(ws), psec = spanSec(wp), hit = pct(t.cache, t.cache + t.in), phit = pct(p.cache, p.cache + p.in);
+  const ss = groupBy(rs, 'root').sort((x, y) => y.in + y.out - x.in - x.out), proj = new Set(ss.map(g => SE[g.key].ws).filter(Boolean));
+  const hour = L(NOW).getUTCHours(), [rh] = (st.rep.at || '18:30').split(':').map(Number);
+  const hi = week ? '这一周辛苦了。' : !rs.length ? '今天还没开始。' : hour >= rh ? '今天辛苦了。' : hour < 12 ? '上午好，进展不错。' : '下午好，继续加油。';
+  const more = sec - psec, say = rs.length ? `${R.name}工作了 <b>${hmT(sec)}</b>，和 Agent 一起推进了 <b>${ss.length} 个会话</b>，完成 <b>${comma(t.n)} 次调用</b>，花费约 <b>${fUSD(t.cost)}</b>。${psec ? `比${R.prev}${more >= 0 ? '多' : '少'}做了 ${hmT(Math.abs(more))}。` : ''}` : `${R.name}还没有调用记录，开始工作后这里会自动生成总结。`;
+  const cmp = (a, b, g) => { const m = Math.max(a, b, 1e-9); return `<div class="vs"><div><span>${week ? '本周' : '今天'}</span>${capsule(a / m, g, SPANW(3) - 46, 5)}</div><div><span>${week ? '上周' : '昨天'}</span>${capsule(b / m, grayG(), SPANW(3) - 46, 5)}</div></div>`; };
+  const dl = (a, b, f, unit = '%') => { if (!b) return `<span class="dim">${R.prev}没有数据</span>`; const d = unit === 'pt' ? (a - b) * 100 : (a / b - 1) * 100; const up = d >= 0; return `<b class="${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${f ? f(Math.abs(a - b)) : Math.abs(Math.round(d)) + (unit === 'pt' ? ' 个点' : '%')}</b> 比${R.prev}`; };
+  const stat = (l, v, a, b, g, d) => `<div class="md st" style="grid-column:span 3"><div class="lb">${l}</div><div class="kn num">${v}</div>${cmp(a, b, g)}<div class="d num">${d}</div></div>`;
+  // 时间轴：工作时段内每个会话的活跃段
+  const tA = ws.length ? ws[0][0] : R.a, tB = Math.max(ws.length ? ws[ws.length - 1][1] : R.b, tA + 3600), TW = SPANW(12) - 210 - 90 - 32, TX = x => (x - tA) / (tB - tA) * TW;
+  const lanes = ss.slice(0, 6).map((g, i) => { const sp = workSpans(rs.filter(r => r.root === g.key)); return `<div class="tlr"><span class="nm el">${SE[g.key].title}<span class="tg">${esc(SE[g.key].ws || '')}${SE[g.key].kids ? ` · ${SE[g.key].kids} 个子代理` : ''}</span></span>
+    <svg width="${TW}" height="14" style="display:block">${sp.map(([a, b]) => `<rect x="${TX(a).toFixed(1)}" y="2" width="${Math.max(8, TX(b) - TX(a)).toFixed(1)}" height="10" rx="5" fill="${PAL[i % PAL.length]}" ${tipA(`${SE[g.key].title}<br>${atLocal(a)} – ${fT(b).slice(0, 5)}`)}/>`).join('')}</svg><span class="v num">${fmt(g.in + g.out)}</span></div>`; }).join('');
+  const nt = Math.min(6, Math.max(2, Math.round((tB - tA) / 7200))), ticks = Array.from({ length: nt + 1 }, (_, i) => `<span>${week ? fD(tA + (tB - tA) * i / nt) : fT(tA + (tB - tA) * i / nt).slice(0, 5)}</span>`).join('');
+  // 本周每天
+  const w0 = wk0(), days = Array.from({ length: 7 }, (_, i) => { const a = w0 + i * 86400, r = rowsAB(a, a + 86400); return { i, a, s: spanSec(workSpans(r)), g: agg(r) }; }), dm = Math.max(...days.map(x => x.s), 3600), today = Math.floor((day0() - w0) / 86400);
+  const wsum = days.reduce((a, x) => a + x.s, 0), wg = agg(rowsAB(w0, NOW + 1));
+  const md = `## ${R.name}工作总结（${fD(NOW)}）\n\n- 工作时长：${hmT(sec)}\n- 会话：${ss.length} 个\n- 调用：${t.n} 次\n- 真实消耗：${fmt(t.in + t.out)} tokens\n- 花费：约 ${fUSD(t.cost)}\n- 缓存命中：${(hit * 100).toFixed(1)}%\n\n${ss.slice(0, 6).map(g => `- ${SE[g.key].title.replace(/&[^;]+;/g, '')}：${fmt(g.in + g.out)}`).join('\n')}`;
+  window._repMd = md;
+  return shell(sub() + `<div class="body h2"><div class="pg rep">${aura()}
+    <section class="rw" style="height:180px">
+      <div class="md" style="grid-column:span 6">
+        <div class="kick">${fD(NOW)} · ${WD[L(NOW).getUTCDay()]} · ${fT(NOW).slice(0, 5)}</div>
+        <div class="hi">${hi}</div><div class="say">${say}</div>
+        <div class="row" style="gap:10px;margin-top:14px">${seg([['day', '今天'], ['week', '本周']], week ? 'week' : 'day', 'repw')}<span class="ibg"><span class="ib2" ${A('repcopy')} ${tipA('复制为 Markdown')}>${icon('copy', 15)}</span></span></div>
+      </div>
+      <div class="md" style="grid-column:7 / span 6">${dusk(rowsAB(day0(), NOW + 1), SPANW(6))}</div>
+    </section>
+    <section class="rw">
+      ${stat('工作时长', hm(sec), sec, psec, G3.gemini, dl(sec, psec, d => hmT(d)))}
+      ${stat('真实消耗', unit(fmt(t.in + t.out)), t.in + t.out, p.in + p.out, G3.week, dl(t.in + t.out, p.in + p.out))}
+      ${stat('花费', fUSD(t.cost), t.cost, p.cost, G3.claude, dl(t.cost, p.cost))}
+      ${stat('缓存命中', `${(hit * 100).toFixed(1)}<small>%</small>`, hit, phit, G3.cyan, dl(hit, phit, null, 'pt'))}
+    </section>
+    <section class="rw"><div class="md" style="grid-column:1/-1">
+      <div class="hd" style="margin-bottom:8px"><span class="lb">${R.name}做了什么 · ${week ? fD(tA) + ' – ' + fD(tB) : fT(tA).slice(0, 5) + ' – ' + fT(tB).slice(0, 5)}</span><span class="lb" style="color:var(--fg-4)">${ss.length} 个会话 · ${proj.size} 个项目</span></div>
+      ${lanes || '<div class="cap">还没有会话</div>'}
+      ${lanes ? `<div class="tlr" style="height:20px"><span></span><div class="row num" style="justify-content:space-between;font-size:11.5px;color:var(--fg-4)">${ticks}</div><span></span></div>` : ''}
+    </div></section>
+    <section class="rw">
+      <div class="md" style="grid-column:span 7"><div class="hd" style="margin-bottom:10px"><span class="lb">本周 · 已工作 ${hmT(wsum)}</span><span class="lb" style="color:var(--fg-4)">${fmt(wg.in + wg.out)} tokens · 约 ${fUSD(wg.cost)}</span></div>
+        <div class="wk">${days.map(x => `<div class="${x.i === today ? 'on' : ''}" ${tipA(`${WD[L(x.a).getUTCDay()]} ${fD(x.a)}${x.s ? `<br>${hmT(x.s)} · ${fmt(x.g.in + x.g.out)} · 约 ${fUSD(x.g.cost)}` : ''}`)}><span class="num" style="font-size:11.5px">${x.s ? (x.s / 3600).toFixed(1) + 'h' : ''}</span><span class="bar" style="height:${x.s ? Math.max(6, x.s / dm * 52) : 4}px;background:${x.s ? (x.i === today ? 'linear-gradient(180deg,#8E7CF6,#4C8DF6)' : 'linear-gradient(180deg,rgb(91 155 255/.55),rgb(91 155 255/.2))') : ink(.06)}"></span>${WD[L(x.a).getUTCDay()]}</div>`).join('')}</div></div>
+      <div class="md" style="grid-column:9 / span 4"><div class="hd" style="margin-bottom:12px"><span class="lb">下班提醒</span><span class="row" style="gap:8px;font-size:12.5px;color:var(--fg-3)">工作日 ${st.rep.at}<span class="sw ${st.rep.on ? 'on' : ''}" ${A('set', 'rep.on=!')}></span></span></div>
+        <div class="nt"><span class="ap"><svg width="18" height="18" viewBox="0 0 10 10"><path d="M2 8V5.5M5 8V2M8 8V4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span><div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between"><span class="t">Buddy</span><span style="font-size:11.5px;color:var(--fg-4)">${st.rep.at}</span></div><div class="b">今天辛苦了，总结好了</div><div class="b" style="color:var(--fg-3)">${sec ? hmT(sec) : '—'} · ${ss.length} 个会话 · 约 ${fUSD(t.cost)}</div></div></div>
+        <div style="font-size:12px;color:var(--fg-4);margin-top:12px">Buddy 打开时到点提醒；周五另附一周总结</div></div>
+    </section>
+  </div></div>`);
+}
+// 下班提醒：Buddy 页面开着时，到点弹一次（每天一次）
+setInterval(() => {
+  if (!st.rep.on || !LIVE.at) return; const d = L(nowS()), wd = d.getUTCDay(); if (wd === 0 || wd === 6) return;
+  const [h, m] = st.rep.at.split(':').map(Number), key = fD(nowS());
+  if (d.getUTCHours() * 60 + d.getUTCMinutes() < h * 60 + m || st.rep.last === key) return;
+  st.rep.last = key; saveSt(); const rs = rowsAB(day0(), NOW + 1), msg = `今天辛苦了 · ${hmT(spanSec(workSpans(rs)))} · 约 ${fUSD(agg(rs).cost)}`;
+  try { if (window.Notification && Notification.permission === 'granted') new Notification('Buddy', { body: msg }); } catch {}
+  toast(msg + ' · 点「日报」看总结');
+}, 60000);
+const accPost = async (path, body) => { try { const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }); return await r.json(); } catch (e) { return { ok: false, error: e.message }; } };
+const ACC_ACT = {
+  accAsk(v) { st.acc.ask = v || null; return 'keep'; },
+  async accGo(v) { st.acc.ask = null; const r = await accPost('/api/accounts/switch', { email: v }); if (r && r.ok) { st.acc.busy = v; } else toast('切换失败：' + (r?.error || '未知错误')); render(); },
+  async accAdd() { st.acc.ask = null; const r = await accPost('/api/accounts/add'); if (r && r.ok) st.acc.busy = '新账号'; else toast('无法添加：' + (r?.error || '未知错误')); render(); },
+  async accDel(v) { if (!confirm(`从 Buddy 移除 ${v}？（不会影响这个 Google 账号本身）`)) return; const r = await accPost('/api/accounts/remove', { email: v }); toast(r?.ok ? '已移除' : '移除失败：' + (r?.error || '')); refresh(); },
+};
+const REPORT_ACT = { repw(v) { st.rep.week = v === 'week'; }, repcopy() { navigator.clipboard?.writeText(window._repMd || '').then(() => toast('已复制为 Markdown')).catch(() => toast('复制失败')); } };
 
 /* ===== 用量：一行指标（同时是图表的指标切换器，带环比）+ 复合主图 + 三张走势折线 + 会话/模型/速度 ===== */
 const METRICS = { n: ['调用', '次'], in: ['新增输入', '实际发出的输入'], cache: ['缓存复用', ''], out: ['输出', '模型生成'], real: ['真实消耗', '新增输入 + 输出'], cost: ['估算成本', '按 API 公开价'] };
@@ -325,8 +514,14 @@ function richChart(bs, rs, m, W) {
       segs += `<path class="mk" d="M${x},${y + hg}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + bw - rr}Q${x + bw},${y} ${x + bw},${y + rr}V${y + hg}Z" fill="${ser[k].c}"/>`; });
     const tip = `<span class="dim">${bs[i].long}</span><br>${ser.map((s, k) => b.parts[k] ? `${sw(s.c)}${s.name} <b class="num">${f1(b.parts[k])}</b> <span class="dim num">${Math.round(b.parts[k] / b.tot * 100)}%</span>` : '').filter(Boolean).join('<br>') || '<span class="dim">没有调用</span>'}`
       + (b.g.n ? `<br><span class="dim num">${comma(b.g.n)} 次调用 · 缓存 ${fmt(b.g.cache)} · 命中 ${Math.round(b.hit * 100)}%<br>约 ${fUSD(b.g.cost)}${b.dec ? ` · 解码中位 ${Math.round(b.dec)} tok/s` : ''} · 点击查看明细</span>` : '');
-    g += `<g class="hit" ${tipA(tip)} ${b.g.n ? A('bucket', bs[i].a + ',' + bs[i].b) : ''}><rect x="${pad.l + band * i}" y="${pad.t}" width="${band}" height="${ih}" fill="transparent"/>${segs}</g>`;
+    g += `<g class="hit" ${tipA(tip)} ${b.g.n ? A('bucket', bs[i].a + ',' + bs[i].b) : ''}><rect x="${pad.l + band * i}" y="${pad.t}" width="${band}" height="${ih}" fill="transparent"/>${st.ctype === 'bar' ? segs : ''}</g>`;
   });
+  // 折线 / 堆叠面积：同一组数据换一种画法，末端标数值
+  if (st.ctype !== 'bar' && total) { const X = i => pad.l + band * (i + .5), base = B.map(() => 0), area = st.ctype === 'area', paths = [];
+    ser.forEach((se, k) => { const top = B.map((b, i) => (area ? base[i] : 0) + b.parts[k]), up = top.map((v, i) => [X(i), Y(v)]), d = curve(up);
+      if (area) { const dn = base.map((v, i) => [X(i), Y(v)]).reverse(); paths.unshift(`<path d="${d}L${dn[0][0]},${dn[0][1]}${curve(dn).replace(/^M[^C]*/, '')}Z" fill="${se.c}" opacity=".55" pointer-events="none"/><path d="${d}" fill="none" stroke="${se.c}" stroke-width="1.5" pointer-events="none"/>`); top.forEach((v, i) => base[i] = v); }
+      else paths.push(`<path d="${d}" fill="none" stroke="${se.c}" stroke-width="2" stroke-linejoin="round" pointer-events="none"/>` + (bs.length <= 40 ? up.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${se.c}" stroke="var(--background)" stroke-width="1.5" pointer-events="none"/>`).join('') : ''));
+    }); g += paths.join(''); }
   if (tots[peak] > 0 && bs.length > 1) g += `<text x="${pad.l + band * (peak + .5)}" y="${Y(tots[peak]) - 6}" fill="var(--fg-2)" font-size="10.5" text-anchor="middle" class="num">${f1(tots[peak])}</text>`;
   if (st.ov.avg && avg) g += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--fg-3)" stroke-dasharray="4 4" opacity=".7" pointer-events="none"/><text x="${pad.l + 4}" y="${Y(avg) - 5}" fill="var(--fg-3)" font-size="10.5" class="num" pointer-events="none">均值 ${f1(avg)}</text>`;
   if (st.ov.cum && total) { let c = 0; const pts = B.map((b, i) => { c += b.tot; return [pad.l + band * (i + 1), pad.t + ih - c / total * ih]; });
@@ -376,7 +571,7 @@ function vTokens() {
   return shell(sub(filters({ extra: `<span class="ctl" ${A('export')}>${ic('ios_share')}导出</span>` })) + `<div class="body">
     <div class="mstrip">${Object.keys(METRICS).map(k => `<div class="mcell ${k === m ? 'on' : ''}" ${A('metric', k)} style="--mc:${MCOL[k]}" ${tipA(k === 'cache' ? `占输入 ${(hit * 100).toFixed(1)}%` : METRICS[k][1])}><span class="ml">${METRICS[k][0]}</span><span class="mv num">${val[k]}</span>${delta(k)}</div>`).join('')}</div>
     <div class="h" style="margin-top:24px"><div class="row" style="gap:14px;align-items:baseline"><h3>${METRICS[m][0]}</h3><span class="dim num" style="font-size:12.5px">峰值 ${rc.peak} · 有调用的时段平均 ${mfmt(m)(rc.avg)} · ${rc.active}/${bs.length} 个时段</span></div>
-      <div class="x">${seg([['type', '按类型'], ['model', '按模型'], ['sess', '按会话']], st.stack, 'stack')}<span class="row" style="gap:6px">${tog('hit', '命中率', 'var(--s3)')}${tog('cum', '累计', 'rgb(255 255 255 / .6)')}${tog('avg', '均值', 'var(--fg-3)')}</span></div></div>
+      <div class="x">${ibg([['bar', 'bar', '柱状图'], ['line', 'line', '折线图'], ['area', 'area', '堆叠面积图']], st.ctype, 'ctype')}${seg([['type', '按类型'], ['model', '按模型'], ['sess', '按会话']], st.stack, 'stack')}<span class="row" style="gap:6px">${tog('hit', '命中率', 'var(--s3)')}${tog('cum', '累计', 'rgb(255 255 255 / .6)')}${tog('avg', '均值', 'var(--fg-3)')}</span></div></div>
     <div class="lgd2">${rc.legend}</div>
     ${rc.svg}
     <div class="hr"></div>
@@ -498,11 +693,8 @@ function qDetail(m, colspan) {
 }
 function vQuota() {
   const pm = perModel(), mxAvg = Math.max(...pm.map(p => p.avg), 1e-9), q = st.q.s.toLowerCase(), open = st.q.open && qBy(st.q.open);
-  return shell(sub(`<span class="inp">${ic('search', 16)}<input data-i="qs" placeholder="搜索模型" value="${st.q.s}"><kbd>/</kbd></span>`) + `<div class="body scroll" style="overflow-y:auto">
-    <div class="h"><h3>额度池</h3><div class="x">${tzLabel()}</div></div>
-    <table class="t"><thead><tr><th>池</th><th style="width:210px">已用</th><th class="r" style="width:190px">本窗口已用</th><th class="r" style="width:170px" ${tipA('按「本窗口已花 ÷ 已用比例」推算<br>token 含缓存，按近 24 小时命中率折算')}>估算总额度 ${ic('info', 13)}</th><th class="r" style="width:170px">估算还剩</th><th class="r" style="width:170px">重置</th></tr></thead><tbody>
-      ${WINS.map((w, k) => { const x = winUse(k), no = `<span class="dim2">${x.all ? '样本不足' : '未使用'}</span>`; return `<tr><td>${w.kind} · ${w.who} <span class="dim2" style="font-size:12.5px;margin-left:6px">${w.n} 个模型</span></td><td><span class="row" style="gap:10px"><span style="width:120px">${bar(x.u, x.col)}</span><span class="num">${(x.u * 100).toFixed(x.u < .1 && x.u > 0 ? 1 : 0)}%</span></span></td><td class="r num">${fUSD(x.cost)} <span class="dim">· ${fmt(x.all)}</span></td><td class="r num">${x.ok ? `约 ${fUSD(x.capCost)} <span class="dim">· ${fmt(x.capAll)}</span>` : no}</td><td class="r num">${x.ok ? `约 ${fUSD(x.leftCost)} <span class="dim">· ${fmt(x.leftAll)}</span>` : ''}</td><td class="r num dim">${x.all ? `${winAt(k)} <span class="dim2">· ${winCd(k)}</span>` : '<span class="dim2">—</span>'}</td></tr>`; }).join('')}
-    </tbody></table>
+  return shell(sub(`<span class="inp">${ic('search', 16)}<input data-i="qs" placeholder="搜索模型" value="${st.q.s}"><kbd>/</kbd></span>`) + `<div class="body scroll h2" style="overflow-y:auto">
+    <div class="pg" style="padding:0;margin-bottom:8px">${aura()}${poolRow(30)}</div>
     <div class="hr"></div>
     <div class="h"><h3>还能用几次</h3><div class="x">近 7 天均值</div></div>
     ${pm.length ? pm.map(p => `<div class="row rowh" ${A('usein', MODEL_NAME(p.key))} style="height:38px;gap:14px">${lg(MODEL_NAME(p.key))}<span class="mono el" style="width:230px;color:var(--fg-2)">${MODEL_NAME(p.key)}</span>
@@ -525,24 +717,46 @@ function ledgerRows() {
   const k = g.sort, v = r => k === 'hit' ? pct(r.cache, r.cache + r.in) : r[k];
   return rs.slice().sort((a, b) => (v(a) - v(b)) * g.dir || b.t - a.t);
 }
+// 上下文曲线：渐变面积，当前步骤高亮并标数值，上限画成虚线
+function ctxCurve(ctx, at, max, W, H = 92) {
+  const top = Math.max(max * .25, ...ctx) * 1.1, X = i => ctx.length < 2 ? W / 2 : i / (ctx.length - 1) * W, Y = v => H - 4 - v / top * (H - 14), pts = ctx.map((v, i) => [X(i), Y(v)]);
+  const d = curve(pts), c = pts[at] || pts[pts.length - 1], cap = max <= top ? `<line x1="0" x2="${W}" y1="${Y(max)}" y2="${Y(max)}" style="stroke:${ink(.25)}" stroke-dasharray="2 4"/>` : '';
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible"><defs><linearGradient id="cxg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5B9BFF" stop-opacity=".32"/><stop offset="1" stop-color="#5B9BFF" stop-opacity="0"/></linearGradient><linearGradient id="cxl" x1="0" x2="1"><stop offset="0" stop-color="#4C8DF6"/><stop offset="1" stop-color="#8E7CF6"/></linearGradient></defs>
+    ${cap}<path d="${d}L${W},${H}L0,${H}Z" fill="url(#cxg)"/><path d="${d}" fill="none" stroke="url(#cxl)" stroke-width="2"/>
+    <line x1="${c[0]}" x2="${c[0]}" y1="${c[1]}" y2="${H}" style="stroke:${ink(.25)}" stroke-dasharray="2 3"/><circle cx="${c[0]}" cy="${c[1]}" r="4.5" fill="#8E7CF6" style="stroke:var(--background)" stroke-width="2.5"/></svg>`;
+}
 function stepDetail(r) {
-  // 同一会话的上下文走势：能看出增长与压缩
   const same = ROWS.filter(x => x.s === r.s), ctx = same.map(x => x.in + x.cache), at = same.findIndex(x => x.idx === r.idx);
-  const drops = ctx.filter((v, i) => i && v < ctx[i - 1] * .6).length, cur = r.in + r.cache, s = SE[r.s], p = rateOf(MODEL_NAME(r.m));
-  const parts = [['var(--s3)', '缓存命中', r.cache, p[2]], ['var(--s1)', '新增输入', r.in, p[1]], ['var(--s2)', '输出', r.out, p[3]]];
-  const kv = (k, v) => `<div class="row" style="height:26px;justify-content:space-between;gap:12px"><span class="dim" style="flex:none">${k}</span><span class="el" style="color:var(--fg-2)">${v}</span></div>`;
-  return `<tr><td colspan="10" style="height:auto;padding:0;border-bottom:1px solid var(--border)"><div data-xp style="background:var(--hover);border-radius:10px;padding:16px 18px;margin:6px 0 10px;display:grid;grid-template-columns:250px 1fr 250px;gap:40px">
-    <div><div class="lbl" style="justify-content:space-between"><span>Token 构成</span><span class="num">约 ${fUSD(r.cost)}</span></div>
-      <div style="display:flex;height:4px;gap:2px;margin:12px 0 8px">${parts.map(([c, , v]) => `<span style="flex:${v || 0.0001};background:${c};border-radius:2px"></span>`).join('')}</div>
-      ${parts.map(([c, l, v, pr]) => `<div class="row" style="height:26px;justify-content:space-between"><span style="color:var(--fg-2)">${sw(c)}${l}</span><span class="num">${comma(v)} <span class="dim2" style="font-size:12px;display:inline-block;width:52px;text-align:right">${fUSD(v * pr / 1e6)}</span></span></div>`).join('')}</div>
-    <div><div class="lbl" style="justify-content:space-between"><span>上下文 · 本会话第 ${at + 1} / ${same.length} 步${drops ? ` · 压缩过 ${drops} 次` : ''}</span><span class="num">${fmt(cur)} / ${fmt(r.maxCtx || CTX_MAX)} · ${(cur / (r.maxCtx || CTX_MAX) * 100).toFixed(1)}%</span></div>
-      <div style="margin-top:16px" ${tipA('本会话每一步的上下文大小，白点为当前步骤')}>${spark(ctx, Math.max(220, CW() - 652), 64, 'var(--s1)', { area: 1, mark: at })}</div></div>
+  const drops = ctx.filter((v, i) => i && v < ctx[i - 1] * .6).length, cur = r.in + r.cache, s = SE[r.s], p = rateOf(MODEL_NAME(r.m)), max = r.maxCtx || CTX_MAX;
+  const parts = [['#4FC3D9', '缓存命中', r.cache, p[2]], ['#5B9BFF', '新增输入', r.in, p[1]], ['#F2B35B', '输出', r.out, p[3]]], tot = parts.reduce((a, x) => a + x[2], 0) || 1;
+  const kv = (k, v) => `<div class="kv2"><span>${k}</span><b class="el">${v}</b></div>`;
+  return `<tr class="xd"><td colspan="10"><div data-xp class="stepd">
+    <div><div class="hd"><span class="lb">Token 构成</span><span class="kn num" style="font-size:22px">${fUSD(r.cost)}</span></div>
+      <div class="seg3">${parts.map(([c, , v]) => v ? `<i style="flex:${v / tot};background:${c}"></i>` : '').join('')}</div>
+      ${parts.map(([c, l, v, pr]) => `<div class="kv2"><span><i class="dot" style="background:${c}"></i>${l}</span><b class="num">${comma(v)}<em>${fUSD(v * pr / 1e6)}</em></b></div>`).join('')}</div>
+    <div><div class="hd"><span class="lb">上下文 · 第 ${at + 1} / ${same.length} 步${drops ? ` · 压缩过 ${drops} 次` : ''}</span><span class="num" style="font-size:13px;color:var(--fg-2)">${fmt(cur)} <span class="dim">/ ${fmt(max)} · ${(cur / max * 100).toFixed(1)}%</span></span></div>
+      <div style="margin-top:14px" ${tipA('本会话每一步的上下文大小；圆点是这一步，虚线是上限')}>${ctxCurve(ctx, at, max, Math.max(220, CW() - 700))}</div></div>
     <div style="display:flex;flex-direction:column">
-      <div class="row" style="height:26px;justify-content:space-between"><span class="dim">模型</span><span class="row" style="gap:7px">${lg(MODEL_NAME(r.m))}<span class="mono" style="color:var(--fg-2)">${MODEL_NAME(r.m)}</span></span></div>
+      ${kv('模型', `<span class="row" style="gap:7px;justify-content:flex-end">${lg(MODEL_NAME(r.m))}<span class="mono">${MODEL_NAME(r.m)}</span></span>`)}
       ${kv('步骤 · 工具', `第 ${r.step} 步 · ${r.tools ? r.tools + ' 次工具' : '无工具'}${s.child ? ` · 子代理 ${s.agent}` : ''}`)}
       ${kv('首字延迟', r.ttft ? `${r.ttft.toFixed(2)} s${r.pre ? ` · prefill ${fmt(r.pre)} tok/s` : ''}` : '—')}${kv('流式耗时', r.dur ? `${r.dur.toFixed(1)} s${r.dec ? ` · 解码 ${Math.round(r.dec)} tok/s` : ''}` : '—')}${kv('思考 / 回答', r.dur ? `${comma(r.tk)} / ${comma(Math.max(0, r.out - r.tk))} tokens` : '—')}
-      <div class="row" style="gap:8px;margin-top:auto;padding-top:10px"><span class="btn" style="flex:1;justify-content:center" ${A('fsess', r.root)}>${ic('filter_list')}只看本会话</span><span class="btn" ${A('copy', r.idx)}>${ic('content_copy')}JSON</span></div>
+      <div class="row" style="gap:8px;margin-top:auto;padding-top:12px;justify-content:flex-end"><span class="btn2" ${A('fsess', r.root)}>${ic('filter_list', 15)}只看本会话</span><span class="btn2" ${A('copy', r.idx)}>${ic('content_copy', 15)}复制 JSON</span></div>
     </div></div></td></tr>`;
+}
+// 顶部时间带：每格一根细柱，按会话分色堆叠；选中时段高亮，点击筛选
+function ledgerStrip(rs, W, H = 92) {
+  const sp = span(), len = sp.b - sp.a, step = len <= 2 * 86400 ? 900 : len <= 14 * 86400 ? 3600 : 86400, N = Math.ceil(len / step), bw = W / N, base = H - 20;
+  const top = groupBy(rs, 'root').sort((x, y) => y.in + y.out - x.in - x.out).slice(0, 5).map(g => g.key), bins = Array.from({ length: N }, () => Array(6).fill(0)), cnt = Array(N).fill(0);
+  rs.forEach(r => { const i = Math.floor((r.t - sp.a) / step); if (i < 0 || i >= N) return; const k = top.indexOf(r.root); bins[i][k < 0 ? 5 : k] += r.in + r.out; cnt[i]++; });
+  const mx = Math.max(...bins.map(b => b.reduce((a, x) => a + x, 0)), 1), sel = st.lg.bucket; let s = '';
+  bins.forEach((b, i) => { const a0 = sp.a + i * step, on = !sel || (a0 >= sel[0] && a0 < sel[1]), tot = b.reduce((a, x) => a + x, 0), x = i * bw + Math.min(1, bw * .15), w = Math.max(1, bw - Math.min(2, bw * .3));
+    if (!tot) { s += `<rect x="${x}" y="${base - 1.5}" width="${w}" height="1.5" style="fill:${ink(.08)}"/>`; return; }
+    let y = base; b.forEach((v, k) => { if (!v) return; const h = Math.max(1.5, v / mx * (base - 6)); y -= h; s += `<rect x="${x}" y="${y}" width="${w}" height="${Math.max(1, h - .8)}" rx="1.5" fill="${k === 5 ? ink(.3) : PAL[k]}" opacity="${on ? 1 : .35}"/>`; });
+    s += `<rect x="${i * bw}" y="0" width="${bw}" height="${base}" fill="transparent" ${A('bucket', a0 + ',' + (a0 + step))} ${tipA(`<span class="dim">${atLocal(a0)} 起 ${step === 900 ? '15 分钟' : step === 3600 ? '1 小时' : '1 天'}</span><br>${b.map((v, k) => v ? `${sw(k === 5 ? 'var(--fg-4)' : PAL[k])}${k === 5 ? '其他' : SE[top[k]].title} ${fmt(v)}` : '').filter(Boolean).join('<br>')}<br><span class="dim">${cnt[i]} 次 · 点击只看这段</span>`)}/>`; });
+  if (sel) { const x0 = (sel[0] - sp.a) / len * W, x1 = (sel[1] - sp.a) / len * W; s = `<rect x="${x0 - 3}" y="-4" width="${x1 - x0 + 6}" height="${base + 8}" rx="8" style="fill:${ink(.05)};stroke:${ink(.28)}"/>` + s; }
+  const lg = top.map((k, i) => `<span class="row" style="gap:5px"><i style="width:7px;height:7px;border-radius:50%;background:${PAL[i]}"></i><span class="el" style="max-width:120px">${SE[k].title}</span></span>`).join('');
+  return `<div class="row" style="justify-content:space-between;margin-bottom:8px;flex:none"><span class="lb">${comma(rs.length)} 次调用 · 点击柱子筛选时段</span><span class="row" style="gap:12px;font-size:12px;color:var(--fg-3)">${lg}</span></div>
+    <svg width="${W}" height="${H}" style="display:block;overflow:visible;flex:none;font-size:11px;fill:var(--fg-4)">${s}<text x="0" y="${H - 3}">${atLocal(sp.a)}</text><text x="${W}" y="${H - 3}" text-anchor="end">${atLocal(Math.min(sp.b, NOW))}</text></svg>`;
 }
 function vLedger() {
   const g = st.lg, rs = ledgerRows(), t = agg(rs), view = rs.slice(0, g.limit), ds = rs.filter(r => r.dec).map(r => r.dec).sort((a, b) => a - b), med = ds.length ? ds[ds.length >> 1] : 0;
@@ -553,7 +767,7 @@ function vLedger() {
   const chip = (k, l) => `<span class="chip ${(k === 'kids' ? st.fx.who === 'sub' : st.fx[k]) ? 'on' : ''}" ${A('lgf', k)}>${l}</span>`;
   const bk = g.bucket ? `<span class="chip on" ${A('unbucket')}>${fD(g.bucket[0])} ${fT(g.bucket[0]).slice(0, 5)}–${fT(g.bucket[1]).slice(0, 5)}${ic('close', 13)}</span>` : '';
   return shell(sub(filters({ extra: `<span class="ctl" ${A('export')}>${ic('ios_share')}CSV</span>` })) + `<div class="body" style="padding:20px 32px 0;display:flex;flex-direction:column;overflow:hidden">
-      <div class="row" style="gap:8px;height:28px;margin-bottom:10px;flex:none"><span class="inp">${ic('search', 16)}<input data-i="ls" placeholder="搜索会话或模型" value="${g.s}"></span>${bk}${chip('miss', '未命中缓存')}${chip('big', '输入 > 100K')}${chip('kids', '子代理')}
+      <div style="flex:none;margin-bottom:16px">${ledgerStrip(rowsIn(), CW())}</div><div class="row" style="gap:8px;height:28px;margin-bottom:10px;flex:none"><span class="inp">${ic('search', 16)}<input data-i="ls" placeholder="搜索会话或模型" value="${g.s}"></span>${bk}${chip('miss', '未命中缓存')}${chip('big', '输入 > 100K')}${chip('kids', '子代理')}
         <span class="dim num" style="margin-left:auto;font-size:13px">${comma(t.n)} 条 · 新增输入 ${fmt(t.in)} · 输出 ${fmt(t.out)} · 约 ${fUSD(t.cost)}${med ? ` · 解码中位 ${Math.round(med)} tok/s` : ''}</span></div>
       <div class="scroll" id="lgscroll" style="flex:1;min-height:0">
       <table class="t"><thead style="position:sticky;top:0;background:var(--background);z-index:2"><tr>${th('t', '时间', 0, 'padding-left:8px')}<th>会话</th><th>模型</th>${th('in', '新增输入', 1)}${th('cache', '缓存', 1)}${th('hit', '命中', 1)}${th('out', '输出', 1)}${th('ttft', '首字', 1)}${th('dec', '解码', 1)}${th('cost', '成本', 1, 'padding-right:8px')}</tr></thead>
@@ -582,33 +796,64 @@ function calGrid() {
     <svg width="${lx + weeks * (cs + gap)}" height="${ty + 7 * (cs + gap)}" style="display:block;max-width:100%">${g}</svg>
     <div class="row" style="margin-top:10px;font-size:12.5px;color:var(--fg-3);gap:16px"><span>${ds.length} 天有活动</span><span>最长连续 ${best} 天</span>${top ? `<span>最忙的一天 ${fD(top[0] * 86400 - TZ + 43200)} · ${fUSD(top[1].cost)}</span>` : ''}<span class="sp"></span><span class="row" style="gap:4px;color:var(--fg-4)">少${steps.map(c => `<i style="width:11px;height:11px;border-radius:3px;background:${c}"></i>`).join('')}多</span></div>`;
 }
+// 本月每天的花费：面积 + 末端标数值
+function monthArea(W, H = 220) {
+  const m0 = monthStart(NOW), nd = Math.floor((day0() - m0) / 86400) + 1, v = Array.from({ length: nd }, (_, i) => agg(rowsAB(m0 + i * 86400, m0 + (i + 1) * 86400)));
+  const c = v.map(x => x.cost), mx = Math.max(...c, .01) * 1.15, X = i => nd < 2 ? W / 2 : i / (nd - 1) * W, Y = x => H - 22 - x / mx * (H - 34), pts = c.map((x, i) => [X(i), Y(x)]);
+  if (nd < 2) return '<div class="cap">本月数据还不够画图</div>';
+  const d = curve(pts), e = pts[pts.length - 1];
+  return `<svg width="${W + 90}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)"><defs><linearGradient id="ma" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E7CF6" stop-opacity=".55"/><stop offset="1" stop-color="#4C8DF6" stop-opacity=".04"/></linearGradient><linearGradient id="ml" x1="0" x2="1"><stop offset="0" stop-color="#4C8DF6"/><stop offset="1" stop-color="#C76BD9"/></linearGradient></defs>
+    <line x1="0" x2="${W}" y1="${H - 22}" y2="${H - 22}" style="stroke:${ink(.14)}"/><path d="${d}L${W},${H - 22}L0,${H - 22}Z" fill="url(#ma)"/><path d="${d}" fill="none" stroke="url(#ml)" stroke-width="2.2"/>
+    <circle cx="${e[0]}" cy="${e[1]}" r="4.5" fill="#C76BD9" style="stroke:var(--background)" stroke-width="2.5"/><text x="${e[0] + 12}" y="${e[1] + 5}" style="fill:var(--fg);font-size:15px;font-weight:450">${fUSD(c[nd - 1])}</text><text x="${e[0] + 12}" y="${e[1] + 22}">今天</text>
+    ${v.map((x, i) => `<rect x="${(X(i) - W / nd / 2).toFixed(1)}" y="0" width="${(W / nd).toFixed(1)}" height="${H - 22}" fill="transparent" ${tipA(`${fD(m0 + i * 86400)} ${WD[L(m0 + i * 86400).getUTCDay()]}<br>约 ${fUSD(x.cost)} · ${fmt(x.in + x.out)} · ${comma(x.n)} 次`)}/>`).join('')}
+    ${[0, Math.floor((nd - 1) / 2), nd - 1].map(i => `<text x="${X(i)}" y="${H - 4}" text-anchor="${i === 0 ? 'start' : i === nd - 1 ? 'end' : 'middle'}">${fD(m0 + i * 86400)}</text>`).join('')}</svg>`;
+}
+// 其他账号：最近一次看到的额度（重置时刻已过的视为已恢复）
+const accPools = e => (e.pools || []).map(p => { const done = p.t <= NOW; return { ...p, f: done ? 1 : p.f, done }; });
+function accRow(e) {
+  const ps = accPools(e), worst = ps.length ? Math.min(...ps.map(p => p.f)) : null, next = ps.filter(p => !p.done && p.f < 1).sort((a, b) => a.t - b.t)[0];
+  const ago = e.seen ? Math.max(1, Math.round((Date.now() - e.seen) / 60000)) : null, agoS = ago == null ? '' : ago < 60 ? `${ago} 分钟前` : ago < 1440 ? `${Math.round(ago / 60)} 小时前` : `${Math.round(ago / 1440)} 天前`;
+  const on = st.acc.ask === e.email;
+  return `<div class="ar ${on ? 'hov' : ''}"><span class="av sm" style="background:linear-gradient(135deg,${accCol(e.email)})">${esc((e.name || e.email)[0].toUpperCase())}</span>
+    <div style="min-width:0;flex:1"><div class="em el">${esc(e.email)}</div><div class="meta" style="margin-top:3px">${e.saved ? '' : '<i class="bad"></i>需要重新登录 · '}${esc(e.plan || '')}${agoS ? ` · ${agoS}看到` : ''}</div></div>
+    ${ps.length ? `<span ${tipA(ps.map(p => `${p.provs.map(x => x === 'claude' ? 'Claude' : x === 'openai' ? 'GPT' : 'Gemini').join('/')} · 剩 ${Math.round(p.f * 100)}% · ${p.done ? '已重置' : atLocal(p.t) + ' 重置'}`).join('<br>') + '<br><span class="dim">最近一次使用这个账号时的读数</span>')}>${capsule(worst, worst < 1 ? G3.gemini : grayG(), 90, 6)}</span><span class="pc num">${Math.round(worst * 100)}%</span>` : ''}
+    <span class="num dim" style="width:92px;text-align:right;font-size:12px">${next ? atLocal(next.t) + ' 恢复' : ps.length ? '额度已满' : ''}</span>
+    <span class="btn2" ${A('accAsk', e.email)}>${e.saved ? '切换' : '登录'}</span><span class="ib2" ${A('accDel', e.email)} ${tipA('从 Buddy 移除这个账号')}>${ic('close', 15)}</span></div>`;
+}
+const accCol = e => { const P = [['#4C8DF6', '#8E7CF6'], ['#3FB97D', '#4FC3D9'], ['#E8955E', '#F27A9B'], ['#9D8CFF', '#C76BD9']]; let h = 0; for (const c of e) h = (h * 31 + c.charCodeAt(0)) >>> 0; return P[h % P.length].join(','); };
+function accPop() {
+  const k = st.acc.ask; if (!k) return '';
+  const add = k === '+', list = LIVE.accounts?.list || [], i = add ? 0 : Math.max(0, list.filter(e => !e.active).findIndex(e => e.email === k)), top = add ? 40 : 92 + i * 62;
+  const li = (icn, t, w) => `<div class="li ${w ? 'w' : ''}">${ic(icn, 16)}<span>${t}</span></div>`;
+  return `<div class="pop2" style="top:${top}px">
+    <h4>${add ? '添加账号' : `切换到 ${esc(k)}`}</h4>
+    ${li('warning', 'Antigravity 会关闭并重新打开，正在生成的回复会中断', 1)}
+    ${add ? li('login', '重新打开后是登录页，用另一个 Google 账号登录即可') + li('bookmark_added', '当前账号已保存，随时可以切回来') : li('key', '用已保存的登录，不需要重新输入密码') + li('history', '会话、项目和设置都保留')}
+    <div class="ft"><span class="dim" style="font-size:12px">约 10 秒</span><span class="row" style="gap:8px"><span class="btn2" ${A('accAsk', '')}>取消</span><span class="btn2 p" ${A(add ? 'accAdd' : 'accGo', k)}>${add ? '重启并登录' : '切换'}</span></span></div></div>`;
+}
 function vAccounts() {
-  const a = ACC[0], day0 = Math.floor((NOW + TZ) / 86400) * 86400 - TZ, mo0 = day0 - (L(NOW).getUTCDate() - 1) * 86400;
-  const u = [['今天', day0], ['近 7 天', day0 - 6 * 86400], ['本月', mo0]].map(([l, t0]) => { const g = agg(ROWS.filter(r => r.t >= t0)); return [l, g.in + g.out, g.cost, g.n]; });
-  const mx = Math.max(u[2][1], 1), first = ROWS.length ? fD(ROWS[0].t) : '—';
-  const cr = (l, x, y) => `<div style="flex:1"><div class="lbl">${l}</div><div class="big num">${credit(x, y)}</div><div style="margin-top:14px">${x != null && y ? qm(x / y, '100%') : ''}</div></div>`;
-  const todo = (i, t, d) => `<div class="row" style="gap:12px;align-items:flex-start;padding:9px 0"><span style="color:var(--fg-3);margin-top:1px">${ic(i, 17)}</span><div style="flex:1"><div class="row" style="gap:8px">${t}<span class="pill">尚未实现</span></div></div></div>`;
-  return shell(sub() + `<div class="body">
-    <div class="row" style="gap:14px"><span class="who" style="width:40px;height:40px;font-size:16px;background:${a.c}">${a.l}</span><div><div class="row" style="gap:8px;font-size:16px;font-weight:var(--w-medium)">${a.n}${planTag(a)}</div><div class="dim" style="margin-top:2px">${a.e}</div></div>
-      <span class="sp"></span><span class="pill ${LIVE.error ? '' : 'ok'}">${LIVE.error ? '未连接' : '使用中'}</span></div>
-    <div class="hr"></div>
-    ${calGrid()}
-    <div class="hr"></div>
-    <div class="cols" style="grid-template-columns:1fr 1fr">
-      <div><div class="h"><h3>额度窗口</h3><div class="x">${tzLabel()}</div></div>
-        ${WINS.map((w, k) => `<div class="row" style="height:34px;gap:12px"><span class="dim" style="width:132px;white-space:nowrap">${w.short}</span><span style="flex:1">${bar(winUse(k).u, winUse(k).col)}</span><span class="num r" style="width:44px">${Math.round(winUse(k).u * 100)}%</span><span class="num r dim" style="width:150px;font-size:13px">${winAt(k)} <span class="dim2">· ${winCd(k)}</span></span></div>`).join('') || '<div class="cap">读不到模型额度</div>'}
+  const a = ACC[0], d0 = day0(), m0 = monthStart(NOW), W5 = SPANW(5), others = (LIVE.accounts?.list || []).filter(e => !e.active);
+  if (st.acc.busy) return shell(sub() + `<div class="body h2"><div class="pg" style="height:70vh;display:grid;place-items:center;text-align:center">${aura()}<div><div class="hi" style="font-size:28px">正在切换到 ${esc(st.acc.busy)}</div><div class="say" style="margin-top:10px">Antigravity 即将关闭并重新打开，约 10 秒。</div></div></div></div>`);
+  const u = [['今天', d0], ['近 7 天', d0 - 6 * 86400], ['本月', m0]].map(([l, t0]) => [l, agg(ROWS.filter(r => r.t >= t0))]), mo = u[2][1];
+  return shell(sub() + `<div class="body h2"><div class="pg">${aura()}
+    <section class="rw">
+      <div class="md" style="grid-column:span 5">
+        <div class="lb">当前账号</div>
+        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${planTag(a)}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
+        ${WINS.map((w, k) => { const v = poolView(k); return `<div class="cr num"><span class="row" style="gap:6px">${winLogos(w).map(l => `<img src="${LOGO[l]}" style="width:14px;height:14px">`).join('')}${w.kind} · ${w.who}</span><b>${v.x.ok ? `剩 ${fUSD(v.x.leftCost)}` : pctS(v.x.f)}<span style="color:var(--fg-4)"> · ${winAt(k)}</span></b></div><div ${tipA(v.tip)}>${capsule(v.x.f, v.x.f < 1 ? winG(w) : grayG(), W5, 12)}</div>`; }).join('') || '<div class="cap">读不到模型额度</div>'}
       </div>
-      <div><div class="h"><h3>用量</h3></div>
-        ${u.map(([l, tok, cost, n]) => `<div class="row" style="height:38px;gap:14px;border-bottom:1px solid var(--border)"><span class="dim" style="width:60px">${l}</span><span style="flex:1">${bar(tok / mx, 'var(--s1)')}</span><span class="num r dim" style="width:70px;font-size:13px">${comma(n)} 次</span><span class="num r" style="width:70px">${fmt(tok)}</span><span class="num r" style="width:70px;font-weight:var(--w-medium)">${fUSD(cost)}</span></div>`).join('')}
+      <div class="md" style="grid-column:7 / span 6;position:relative">
+        <div class="hd"><span class="lb">其他账号 · 点切换会重启 Antigravity</span><span class="lk" style="font-size:12.5px" ${A('accAsk', '+')}>${ic('add', 15)}添加账号</span></div>
+        ${others.length ? others.map(e => accRow(e)).join('') : `<div class="cap" style="margin-top:14px;line-height:1.7">还没有其他账号。点「添加账号」，Antigravity 会重启到登录页，登录另一个 Google 账号后 Buddy 会自动记下它，之后一键切换。</div>`}
+        ${accPop()}
+        <div class="ur" style="border:0;height:auto;margin-top:22px;gap:24px">${u.map(([l, g]) => `<div><div class="lb">${l}</div><div class="kn num" style="font-size:22px;margin-top:6px">${fUSD(g.cost)}</div><div class="num dim" style="font-size:12px;margin-top:4px">${fmt(g.in + g.out)} · ${comma(g.n)} 次</div></div>`).join('')}</div>
       </div>
-    </div>
-    <div class="hr"></div>
-    <div class="h"><h3>计划中</h3></div>
-    <div class="cols" style="grid-template-columns:1fr 1fr">
-      ${todo('swap_horiz', '多账号与切换', '')}
-      ${todo('hub', '按账号固定出口 IP', '')}
-    </div>
-  </div>`);
+    </section>
+    <section class="rw"><div class="md" style="grid-column:1/-1">
+      <div class="hd" style="align-items:flex-end"><div><div class="lb">本月 · 每天花费</div><div class="kn num" style="margin-top:10px;font-size:40px">${fUSD(mo.cost)} <span style="font-size:15px;color:var(--fg-3);letter-spacing:0">${fmt(mo.in + mo.out)} tokens · ${comma(mo.n)} 次</span></div></div></div>
+      <div style="margin-top:16px">${monthArea(SPANW(12) - 90)}</div>
+    </div></section>
+  </div></div>`);
 }
 
 /* ===== 设置 ===== */
@@ -620,9 +865,15 @@ const getPath = k => k.split('.').reduce((o, p) => o[p], st);
 function setPath(k, v) { const ps = k.split('.'), last = ps.pop(), o = ps.reduce((x, p) => x[p], st); o[last] = v === '!' ? !o[last] : v === 'true' ? true : v === 'false' ? false : isNaN(v) || v === '' ? v : Number(v); }
 const segSet = (key, opts) => `<div class="seg">${opts.map(([v, l]) => `<span class="${String(getPath(key)) === String(v) ? 'on' : ''}" ${A('set', key + '=' + v)}>${l}</span>`).join('')}</div>`;
 const dot = () => '';
+// 主题缩略图：小窗口插画
+const thumb = v => { const win = (b, p, l) => `<rect width="112" height="72" fill="${b}"/><rect x="22" y="8" width="84" height="58" rx="5" fill="${p}"/><path d="M30,52 C45,30 55,48 68,36 S85,44 100,40 L100,58 L30,58Z" fill="#5B9BFF" opacity=".8"/><rect x="30" y="16" width="26" height="5" rx="2.5" fill="${l}"/><rect x="6" y="10" width="11" height="3" rx="1.5" fill="${l}"/><rect x="6" y="17" width="11" height="3" rx="1.5" fill="${l}"/>`;
+  const L = win('#F4F4F6', '#fff', 'rgb(0 0 0/.08)'), Dk = win('#111114', '#070708', 'rgb(255 255 255/.08)');
+  return `<svg width="112" height="72" viewBox="0 0 112 72">${v === 0 ? `<clipPath id="th0"><rect width="56" height="72"/></clipPath><clipPath id="th1"><rect x="56" width="56" height="72"/></clipPath><g clip-path="url(#th0)">${L}</g><g clip-path="url(#th1)">${Dk}</g>` : v === 2 ? L : Dk}<rect x=".5" y=".5" width="111" height="71" rx="9" fill="none" style="stroke:${ink(.12)}"/></svg>`; };
 const SPV = {
   general: () => ['通用', '显示方式与默认视图。设置保存在本机。',
-    grp('显示', '', gr('时区', '重置时间、图表和明细都按这个时区显示', segSet('tz', [['auto', '跟随系统 · ' + (TZ_AUTO >= 0 ? 'GMT+' : 'GMT') + TZ_AUTO / 3600], ['sh', '北京时间'], ['utc', 'UTC']]))
+    grp('外观', '', `<div class="gr" style="display:block"><div>主题</div><div class="d">跟随系统，或单独指定深色 / 浅色</div><div class="th">${[[0, '跟随系统'], [1, '深色'], [2, '浅色']].map(([v, l]) => `<div class="${st.theme === v ? 'on' : ''}" ${A('theme', v)}>${thumb(v)}${l}</div>`).join('')}</div></div>`)
+    + grp('日报', '每天下班时总结今天做了什么', gr('下班提醒', '工作日到点提醒一次（Buddy 开着时）', `<span class="sw ${st.rep.on ? 'on' : ''}" ${A('set', 'rep.on=!')}></span>`) + gr('提醒时间', '', segSet('rep.at', [['17:30', '17:30'], ['18:00', '18:00'], ['18:30', '18:30'], ['19:00', '19:00'], ['20:00', '20:00']])))
+    + grp('显示', '', gr('时区', '重置时间、图表和明细都按这个时区显示', segSet('tz', [['auto', '跟随系统 · ' + (TZ_AUTO >= 0 ? 'GMT+' : 'GMT') + TZ_AUTO / 3600], ['sh', '北京时间'], ['utc', 'UTC']]))
       + gr('数字格式', `当前示例：${fmt(5890123)}`, segSet('fullnum', [[false, '5.89M'], [true, '5,890,123']])))
     + grp('默认视图', '', gr('时间范围', '', segSet('range', [['6h', '近 6 小时'], ['24h', '近 24 小时'], ['7d', '近 7 天'], ['30d', '近 30 天'], ['mo', '本月']]))
       + gr('额度页默认显示', '模型很多时，只看用过的更清楚', segSet('q.f', [['used', '使用过'], ['pin', '已关注'], ['all', '全部']])))
@@ -664,7 +915,7 @@ const SETTINGS_ACT = {
 };
 
 /* ===== 动作、渲染、事件 ===== */
-const VIEWS = { overview: vOverview, quota: vQuota, tokens: vTokens, ledger: vLedger, accounts: vAccounts, settings: vSettings };
+const VIEWS = { overview: vOverview, report: vReport, quota: vQuota, tokens: vTokens, ledger: vLedger, accounts: vAccounts, settings: vSettings };
 let toastT;
 function toast(msg) { st.toast = msg; clearTimeout(toastT); toastT = setTimeout(() => { st.toast = null; render(); }, 2600); }
 const num = v => v === '' || v == null ? null : Number(v);
@@ -697,12 +948,14 @@ const ACT = {
   copy(v) { const r = ROWS[v], j = JSON.stringify({ created_at: new Date(r.t * 1000).toISOString(), session: SE[r.s].id, step_index: r.step, model: MODEL_NAME(r.m), input_tokens: r.in, cache_read_tokens: r.cache, output_tokens: r.out, tool_calls: r.tools }, null, 2); navigator.clipboard?.writeText(j).catch(() => {}); toast('已复制这一步的 JSON'); },
   aux() { st.chat.aux = !st.chat.aux; st.chat.pop = null; }, pop(v) { st.chat.pop = st.chat.pop === v ? null : v; return 'keep'; },
   usemodel(v) { st.chat.model = v; st.chat.pop = null; toast(`已换用 ${qBy(v).name}`); },
-  toggle(v) { st[v] = !st[v]; if (v === 'native' && !st.native) st.chat.pop = null; }, theme(v) { st.theme = Number(v); if (st.theme === 2) toast('浅色主题待设计，原型暂只提供深色'); }, credits(v) { st.credits = v; }, alert(v) { st.alert = Number(v); },
+  toggle(v) { st[v] = !st[v]; if (v === 'native' && !st.native) st.chat.pop = null; }, theme(v) { st.theme = Number(v); applyTheme(); }, credits(v) { st.credits = v; }, alert(v) { st.alert = Number(v); },
 };
 function render() {
+  applyTheme();
   const sc = {}; document.querySelectorAll('#lgscroll,#spscroll,.body.scroll').forEach(e => sc[e.id || 'body'] = e.scrollTop);
   const f = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.i, pos = f ? document.activeElement.selectionStart : 0;
-  document.getElementById('app').innerHTML = VIEWS[st.tab]() + (st.toast ? `<div style="position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:9px 14px;font-size:13px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6);white-space:nowrap">${st.toast}</div>` : '');
+  const lightFix = h => isLight() ? h.replace(/rgb\(255 255 255 \/ /g, 'rgb(0 0 0 / ') : h;
+  document.getElementById('app').innerHTML = lightFix(VIEWS[st.tab]()) + (st.toast ? `<div style="position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:9px 14px;font-size:13px;box-shadow:0 16px 40px -12px rgb(0 0 0 / .6);white-space:nowrap">${st.toast}</div>` : '');
   const toastEl = document.querySelector('#app > div:last-child'); if (st.toast && toastEl) document.querySelector('.pane').appendChild(toastEl);
   document.querySelectorAll('#lgscroll,#spscroll,.body.scroll').forEach(e => { e.scrollTop = sc[e.id || 'body'] || 0; });
   if (f) { const el = document.querySelector(`[data-i="${f}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch {} } }
@@ -735,7 +988,7 @@ function downloadCsv(rs, name) {
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast(`已导出 ${comma(rs.length)} 条记录`); }
   catch { navigator.clipboard?.writeText(csv).catch(() => {}); toast('无法下载，已把 CSV 复制到剪贴板'); }
 }
-const KEEP = ['range', 'gran', 'cr', 'stack', 'ov', 'fullnum', 'tz', 'metric', 'cal'];
+const KEEP = ['range', 'gran', 'cr', 'stack', 'ov', 'fullnum', 'tz', 'metric', 'cal', 'theme', 'rep', 'ctype'];
 function saveSt() { try { localStorage.setItem('buddy.st', JSON.stringify({ ...Object.fromEntries(KEEP.map(k => [k, st[k]])), qf: st.q.f, pins: [...st.q.pins] })); } catch {} }
 function loadSt() { try { const s = JSON.parse(localStorage.getItem('buddy.st') || 'null'); if (!s) return; KEEP.forEach(k => { if (s[k] !== undefined) st[k] = s[k]; }); if (s.qf) st.q.f = s.qf; if (s.pins) st.q.pins = new Set(s.pins); TZ = TZ_OPT[st.tz] ?? TZ_AUTO; } catch {} }
 let busy = false;
@@ -749,7 +1002,7 @@ async function refresh(manual) {
   } catch (e) { if (!LIVE.at) document.getElementById('app').innerHTML = `<div class="pane"><div class="cap" style="padding:80px 0;text-align:center">读不到数据：${esc(e.message)}<br><br><span class="btn" onclick="refresh(true)">重试</span></div></div>`; else if (manual) toast('同步失败：' + e.message); }
   finally { busy = false; }
 }
-Object.assign(ACT, SETTINGS_ACT, FILTER_ACT, TOKENS_ACT, { chat() {}, fmodelGo0() { st.range = '24h'; st.fModel = st.fSess = null; st.tab = 'tokens'; st.metric = 'cost'; }, ovPool(v) { st.ovPool = Number(v); }, fmodelGo(v) { st.fModel = Number(v); st.fSess = null; st.range = 'mo'; st.tab = 'tokens'; st.metric = 'cost'; }, cal(v) { st.cal = v; }, sync() { refresh(true); },
+Object.assign(ACT, SETTINGS_ACT, FILTER_ACT, TOKENS_ACT, REPORT_ACT, ACC_ACT, { ctype(v) { st.ctype = v; }, chat() {}, fmodelGo0() { st.range = '24h'; st.fModel = st.fSess = null; st.tab = 'tokens'; st.metric = 'cost'; }, ovPool(v) { st.ovPool = Number(v); }, fmodelGo(v) { st.fModel = Number(v); st.fSess = null; st.range = 'mo'; st.tab = 'tokens'; st.metric = 'cost'; }, cal(v) { st.cal = v; }, sync() { refresh(true); },
   export() { downloadCsv(st.tab === 'ledger' ? ledgerRows() : rowsIn(), 'buddy-usage.csv'); } });
 Object.keys(ACT).forEach(k => { const f = ACT[k]; ACT[k] = v => { const r = f(v); saveSt(); return r; }; });
 loadSt();
@@ -764,6 +1017,6 @@ loadSt();
       if (lastInd && (lastInd.l !== to.l)) { ind.style.transition = 'none'; ind.style.left = lastInd.l + 'px'; ind.style.width = lastInd.w + 'px'; ind.offsetWidth; ind.style.transition = ''; }
       ind.style.left = to.l + 'px'; ind.style.width = to.w + 'px'; lastInd = to; }
     lastTab = st.tab + st.sp; lastOpen = open; lastMenu = st.menu; }; }
-{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
+{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (q.get('theme')) st.theme = Number(q.get('theme')); if (q.get('sel')) setTimeout(() => { const r = ledgerRows()[+q.get('sel')]; if (r) { st.lg.sel = r.idx; render(); } }, 1500); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (LIVE.at) render(); }, 120); });
 refresh(); setInterval(refresh, 30000);

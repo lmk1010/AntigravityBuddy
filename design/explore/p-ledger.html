@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>明细 · H2 风格</title>
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="rows.css"><link rel="stylesheet" href="light.css">
+<style>
+.lr{display:grid;grid-template-columns:repeat(12,68px);column-gap:24px;align-items:center;height:58px;border-radius:12px;margin:0 -12px;padding:0 12px;width:calc(100% + 24px)}
+.lr.sel{background:var(--hover);box-shadow:inset 0 0 0 1px var(--card-border)}
+.lr .tm{font-family:var(--mono);font-size:12.5px;color:var(--fg-3)}
+.lr .nm{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr .sb{font-size:12px;color:var(--fg-4);margin-top:3px;white-space:nowrap}
+.lr .cs{font-size:15px;text-align:right;font-weight:400}
+.lh{display:grid;grid-template-columns:repeat(12,68px);column-gap:24px;font-size:12px;color:var(--fg-4);height:24px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:10px;font-size:11.5px;background:rgb(232 149 94/.14);color:#E8955E;white-space:nowrap}
+.tag.b{background:rgb(91 155 255/.14);color:#7DB3FF}
+body.light .tag{color:#C8642E}body.light .tag.b{color:#2F71E3}
+.inp2{display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:15px;background:var(--muted);color:var(--fg-4);font-size:12.5px;width:240px}
+</style></head><body><div id="app"></div>
+<script src="shell.js"></script><script src="kit.js"></script><script src="art.js"></script><script src="ui.js"></script>
+<script>
+UI.tabs(4);
+// 时间带：每 15 分钟一根细柱，按会话分色堆叠，选中区间高亮，其余淡化
+function strip(W = 1080, H = 120) {
+  const N = 96, bw = W / N, base = H - 22, bins = Array.from({ length: N }, () => [0, 0, 0, 0, 0]);
+  D.calls.forEach(c => bins[Math.min(N - 1, Math.floor(c.t * 4))][c.s] += c.tok);
+  const mx = Math.max(...bins.map(b => b.reduce((a, x) => a + x, 0))), sc = (base - 8) / mx, b0 = 68, b1 = 73;
+  let s = `<defs>${ART.pal.map((c, i) => `<linearGradient id="sg${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".55"/></linearGradient>`).join('')}</defs>`;
+  s += `<rect x="${b0 * bw - 3}" y="0" width="${(b1 - b0) * bw + 6}" height="${base + 4}" rx="8" style="fill:${UI.ink(.05)};stroke:${UI.ink(.28)}"/>`;
+  bins.forEach((b, i) => {
+    const tot = b.reduce((a, x) => a + x, 0), x = i * bw + 1, w = bw - 2, inb = i >= b0 && i < b1;
+    if (!tot) { s += `<rect x="${x}" y="${base - 1.5}" width="${w}" height="1.5" rx=".75" style="fill:${UI.ink(.08)}"/>`; return; }
+    let y = base;
+    b.forEach((v, k) => { if (!v) return; const h = Math.max(1.5, v * sc); y -= h; s += `<rect x="${x}" y="${y}" width="${w}" height="${h - .8}" rx="1.5" fill="url(#sg${k})" opacity="${inb ? 1 : .42}"/>`; });
+    const hh = Math.floor(i / 4), mm = (i % 4) * 15, lbl = `${D.hourLabel(hh)}:${String(mm).padStart(2, '0')}`;
+    s += `<rect x="${i * bw}" y="0" width="${bw}" height="${base}" fill="transparent" data-tip='<b>${lbl}</b> 起 15 分钟<br>${b.map((v, k) => v ? `<i class="k" style="background:${ART.pal[k]}"></i>${D.sessions[k].t.split(' ').slice(0, 2).join(' ')} ${Math.round(v)}K` : '').filter(Boolean).join('<br>')}'/>`;
+  });
+  [[0, '昨天 12:00'], [24, '18:00'], [48, '00:00'], [72, '06:00'], [96, '现在']].forEach(([i, l]) => s += `<text x="${i * bw}" y="${H - 4}" text-anchor="${i === 96 ? 'end' : i ? 'middle' : 'start'}">${l}</text>`);
+  s += `<text x="${b1 * bw + 12}" y="14" style="fill:var(--fg-2);font-size:12px">05:00–06:15 · 63 次</text>`;
+  return `<svg width="${W}" height="${H}" style="display:block;overflow:visible;font-size:11.5px;fill:var(--fg-4)">${s}</svg>`;
+}
+// token 构成胶囊：新增输入 / 输出 / 缓存
+function comp(i, o, c, W = 252) {
+  const t = i + o + c, w = v => Math.max(v ? 3 : 0, v / t * W);
+  return `<div style="display:flex;gap:2px;height:10px;width:${W}px"><i style="width:${w(i)}px;background:linear-gradient(90deg,#4C8DF6,#7DB3FF);border-radius:5px"></i><i style="width:${w(o)}px;background:#F2B35B;border-radius:5px"></i><i style="flex:1;background:rgb(79 195 217/.35);border-radius:5px"></i></div>`;
+}
+const R = [
+  ['05:12:08', 'gemini', 'Server Deployment And File Transfer', '第 42 步 · 3 个工具 · 思考', [182, 2.1, 0], '$0.42', ['未命中', '>100K']],
+  ['05:11:40', 'gemini', 'Server Deployment And File Transfer', '第 41 步 · 1 个工具', [12, 1.4, 168], '$0.06', []],
+  ['05:09:55', 'gemini', 'Server Deployment And File Transfer', '第 40 步 · 5 个工具 · 思考', [204, 3.3, 0], '$0.48', ['未命中', '>100K']],
+  ['05:08:12', 'gemini', 'Neox UI Design Optimization › image-generator', '子代理 · 第 3 步', [8, .9, 44], '$0.03', ['子代理']],
+  ['05:06:31', 'gemini', 'Server Deployment And File Transfer', '第 39 步 · 2 个工具', [9, 2.6, 171], '$0.07', []],
+  ['05:04:02', 'gemini', 'Server Deployment And File Transfer', '第 38 步 · 1 个工具 · 思考', [6, 1.1, 166], '$0.05', []],
+  ['05:01:47', 'gemini', 'Server Deployment And File Transfer', '第 37 步 · 4 个工具', [11, 4.2, 152], '$0.09', []],
+];
+mount(`<div class="pg" style="position:relative;gap:30px">${UI.aura()}
+  <section class="rw"><div class="md" style="grid-column:1/-1"><div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="lb">411 次调用 · 每 15 分钟一格 · 拖动框选时间段</div><div class="lb" style="color:var(--fg-4)">${D.sessions.map((s, i) => `<span class="row" style="gap:5px;margin-left:12px"><i style="width:7px;height:7px;border-radius:50%;background:${ART.pal[i]}"></i>${['Casual', 'Server', 'Neox UI', 'Future', '国考'][i]}</span>`).join('')}</div></div>${strip()}</div></section>
+  <section class="rw">
+    <div class="md" style="grid-column:span 8"><div class="chips"><span class="on">全部 63</span><span>未命中缓存 4</span><span>输入 &gt; 100K 3</span><span>子代理 6</span><span>思考 21</span></div></div>
+    <div class="md" style="grid-column:span 4;display:flex;justify-content:flex-end"><span class="inp2">${ic('search', 16)}搜索会话、模型、工具</span></div>
+  </section>
+  <section>
+    <div class="lh"><span>时间</span><span style="grid-column:span 4">会话</span><span style="grid-column:span 4">Token 构成 · <span style="color:#7DB3FF">新增输入</span> / <span style="color:#F2B35B">输出</span> / <span style="color:#4FC3D9">缓存</span></span><span style="grid-column:span 2"></span><span style="text-align:right">成本</span></div>
+    ${R.map(([t, l, n, sb, [i, o, c], cost, tags], k) => `<div class="lr ${k === 0 ? 'sel' : ''}"><span class="tm">${t}</span><div style="grid-column:span 4;display:flex;align-items:center;gap:12px;min-width:0">${UI.tile([l], 'sm')}<div style="min-width:0"><div class="nm">${n}</div><div class="sb">${sb}</div></div></div>
+      <div style="grid-column:span 4">${comp(i, o, c, 344)}<div class="sb num" style="margin-top:6px">${i}K · ${o}K · ${c}K</div></div>
+      <div style="grid-column:span 2;display:flex;gap:6px">${tags.map(x => `<span class="tag ${x === '子代理' ? 'b' : ''}">${x}</span>`).join('')}</div><span class="cs num">${cost}</span></div>`).join('')}
+  </section>
+</div>`);
+</script></body></html>
