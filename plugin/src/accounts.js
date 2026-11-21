@@ -51,6 +51,11 @@ function accPop() {
     ${add ? li('login', '重新打开后是登录页，用另一个 Google 账号登录即可') + li('bookmark_added', '当前账号已保存，随时可以切回来') : li('key', '用已保存的登录，不需要重新输入密码') + li('history', '会话、项目和设置都保留')}
     <div class="ft"><span class="dim" style="font-size:12px">约 10 秒</span><span class="row" style="gap:8px"><span class="btn2" ${A('accAsk', '')}>取消</span><span class="btn2 p" ${A(add ? 'accAdd' : 'accGo', k)}>${add ? '重启并登录' : '切换'}</span></span></div></div>`;
 }
+// 套餐：以 tier.id 为准（plan 字段在会员到期后仍可能写着 Pro）
+function tierPill(stt) {
+  if (!stt) return ''; const id = (stt.tier?.id || '') + ' ' + (stt.tier?.name || ''), [cls, l] = /ultra/i.test(id) ? ['ultra', 'Ultra'] : /free|starter|standard/i.test(id) ? ['free', '免费'] : /pro/i.test(id) ? ['pro', 'Pro'] : stt.plan ? ['std', stt.plan] : [];
+  return cls ? `<span class="pill plan ${cls}" ${tipA(esc(stt.tier?.name || stt.plan || ''))}>${esc(l)}</span>` : '';
+}
 function vAccounts() {
   const a = ACC[0], d0 = day0(), m0 = monthStart(NOW), W5 = SPANW(5), others = (LIVE.accounts?.list || []).filter(e => !e.active);
   if (st.acc.busy) return shell(sub() + `<div class="body h2"><div class="pg" style="height:70vh;display:grid;place-items:center;text-align:center">${aura()}<div><div class="hi" style="font-size:28px">正在切换到 ${esc(st.acc.busy)}</div><div class="say" style="margin-top:10px">Antigravity 即将关闭并重新打开，约 10 秒。</div></div></div></div>`);
@@ -59,7 +64,7 @@ function vAccounts() {
     <section class="rw">
       <div class="md" style="grid-column:span 5">
         <div class="lb">当前账号</div>
-        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${LIVE.status?.plan ? `<span class="pill plan pro">${esc(LIVE.status.plan)}</span>` : ''}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
+        <div class="row" style="gap:16px;margin-top:16px"><span class="av lg" style="background:linear-gradient(135deg,#4C8DF6,#8E7CF6)">${a.l}</span><div style="min-width:0"><div class="row" style="gap:8px;font-size:19px;font-weight:450">${a.n || a.e}${tierPill(LIVE.status)}</div><div class="meta"><i class="${LIVE.error ? 'bad' : ''}"></i>${LIVE.error ? '未连接' : '使用中'} · ${a.e}</div></div></div>
         ${WINS.map((w, k) => { const v = poolView(k); return `<div class="cr num"><span class="row" style="gap:6px">${winLogos(w).map(l => `<img src="${LOGO[l]}" style="width:14px;height:14px">`).join('')}${w.kind} · ${w.who}</span><b>${v.x.ok ? `剩 ${fUSD(v.x.leftCost)}` : pctS(v.x.f)}<span style="color:var(--fg-4)"> · ${winAt(k)}</span></b></div><div ${tipA(v.tip)}>${capsule(v.x.f, v.x.f < 1 ? winG(w) : grayG(), W5, 12)}</div>`; }).join('') || '<div class="cap">读不到模型额度</div>'}
       </div>
       <div class="md" style="grid-column:7 / span 6;position:relative">

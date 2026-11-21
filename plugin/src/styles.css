@@ -362,3 +362,5 @@ body.light .herov{background:linear-gradient(180deg,#14151A 35%,#4C5FD5);-webkit
 .acc-empty li{counter-increment:s;display:flex;gap:10px;align-items:baseline}.acc-empty li:before{content:counter(s);font-size:11px;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;flex:none;background:var(--secondary);color:var(--fg-3)}
 body.light .pill.plan{color:#2F71E3;background:rgb(47 113 227/.1);border-color:transparent}
 body.light .acc-empty img{mix-blend-mode:multiply}
+.row>.pill.plan{align-self:center;margin-top:2px}
+body.light .pill.plan.free{color:var(--fg-3)}
