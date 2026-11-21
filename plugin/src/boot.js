@@ -35,6 +35,6 @@ loadSt();
       if (lastInd && (lastInd.l !== to.l)) { ind.style.transition = 'none'; ind.style.left = lastInd.l + 'px'; ind.style.width = lastInd.w + 'px'; ind.offsetWidth; ind.style.transition = ''; }
       ind.style.left = to.l + 'px'; ind.style.width = to.w + 'px'; lastInd = to; }
     lastTab = st.tab + st.sp; lastOpen = open; lastMenu = st.menu; }; }
-{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (q.get('theme')) st.theme = Number(q.get('theme')); if (q.get('sel')) setTimeout(() => { const r = ledgerRows()[+q.get('sel')]; if (r) { st.lg.sel = r.idx; render(); } }, 1500); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
+{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (q.get('theme')) st.theme = Number(q.get('theme')); if (q.get('repw')) st.rep.week = q.get('repw') === '1'; if (q.get('sel')) setTimeout(() => { const r = ledgerRows()[+q.get('sel')]; if (r) { st.lg.sel = r.idx; render(); } }, 1500); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (LIVE.at) render(); }, 120); });
 refresh(); setInterval(refresh, 30000);

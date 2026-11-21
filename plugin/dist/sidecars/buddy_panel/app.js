@@ -387,8 +387,8 @@ function repRange(week) {
 const rowsAB = (a, b) => ROWS.filter(r => r.t >= a && r.t < b);
 // 插画：黄昏。活跃曲线是远山，太阳落在下班时刻，水面倒影
 function dusk(rs, W, H = 176) {
-  const d = day0(), G = 126, act = Array(24).fill(0); rs.forEach(r => { const h = Math.floor((r.t - d) / 3600); if (h >= 0 && h < 24) act[h] += r.in + r.out; });
-  let h0 = act.findIndex(v => v > 0); if (h0 < 0) h0 = 9; h0 = Math.max(0, Math.min(h0, 9)); const h1 = Math.max(19, Math.ceil((NOW - d) / 3600));
+  const d = day0(), G = 126, act = Array(24).fill(0); rs.forEach(r => { act[L(r.t).getUTCHours()] += r.in + r.out; });
+  let h0 = act.findIndex(v => v > 0); if (h0 < 0) h0 = 9; h0 = Math.max(0, Math.min(h0, 9)); const h1 = Math.max(19, (23 - [...act].reverse().findIndex(v => v > 0)) + 1);
   const seg = act.slice(h0, h1), mx = Math.max(...seg, 1), sm = smooth(seg.map(v => v / mx), 1.2), X = i => i / Math.max(1, sm.length - 1) * W;
   const hill = (k, off) => { const pts = sm.map((v, i) => [X(i), G - v * 58 * k - off - 6]); return `M0,${G}L0,${pts[0][1]}${curve(pts).replace(/^M[^C]*/, '')}L${W},${G}Z`; };
   const [rh, rm] = (st.rep.at || '18:30').split(':').map(Number), sx = Math.min(W - 50, Math.max(50, ((rh + rm / 60) - h0) / (h1 - h0) * W)), L2 = isLight();
@@ -413,16 +413,21 @@ function vReport() {
   const hour = L(NOW).getUTCHours(), [rh] = (st.rep.at || '18:30').split(':').map(Number);
   const hi = week ? '这一周辛苦了。' : !rs.length ? '今天还没开始。' : hour >= rh ? '今天辛苦了。' : hour < 12 ? '上午好，进展不错。' : '下午好，继续加油。';
   const more = sec - psec, say = rs.length ? `${R.name}工作了 <b>${hmT(sec)}</b>，和 Agent 一起推进了 <b>${ss.length} 个会话</b>，完成 <b>${comma(t.n)} 次调用</b>，花费约 <b>${fUSD(t.cost)}</b>。${psec ? `比${R.prev}${more >= 0 ? '多' : '少'}做了 ${hmT(Math.abs(more))}。` : ''}` : `${R.name}还没有调用记录，开始工作后这里会自动生成总结。`;
-  const cmp = (a, b, g) => { const m = Math.max(a, b, 1e-9); return `<div class="vs"><div><span>${week ? '本周' : '今天'}</span>${capsule(a / m, g, SPANW(3) - 46, 5)}</div><div><span>${week ? '上周' : '昨天'}</span>${capsule(b / m, grayG(), SPANW(3) - 46, 5)}</div></div>`; };
-  const dl = (a, b, f, unit = '%') => { if (!b) return `<span class="dim">${R.prev}没有数据</span>`; const d = unit === 'pt' ? (a - b) * 100 : (a / b - 1) * 100; const up = d >= 0; return `<b class="${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${f ? f(Math.abs(a - b)) : Math.abs(Math.round(d)) + (unit === 'pt' ? ' 个点' : '%')}</b> 比${R.prev}`; };
-  const stat = (l, v, a, b, g, d) => `<div class="md st" style="grid-column:span 3"><div class="lb">${l}</div><div class="kn num">${v}</div>${cmp(a, b, g)}<div class="d num">${d}</div></div>`;
+  const cmp = () => '';
+  const dl = (a, b, f, unit = '%') => { if (!b) return ''; const d = unit === 'pt' ? (a - b) * 100 : (a / b - 1) * 100, up = d >= 0, pv = f === 'h' ? hmT(b) : unit === 'pt' ? (b * 100).toFixed(1) + '%' : f === '$' ? fUSD(b) : fmt(b); return `${R.prev} ${pv} · <b class="${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${f === 'h' ? hmT(Math.abs(a - b)) : unit === 'pt' ? Math.abs(d).toFixed(1) + ' 个点' : Math.abs(Math.round(d)) + '%'}</b>`; };
+  const stat = (l, v, a, b, g, d) => `<div class="md st" style="grid-column:span 3"><div class="lb">${l}</div><div class="kn num">${v}</div>${d ? `<div class="d num">${d}</div>` : ''}</div>`;
   // 时间轴：工作时段内每个会话的活跃段
   const tA = ws.length ? ws[0][0] : R.a, tB = Math.max(ws.length ? ws[ws.length - 1][1] : R.b, tA + 3600), TW = SPANW(12) - 210 - 90 - 32, TX = x => (x - tA) / (tB - tA) * TW;
-  const lanes = ss.slice(0, 6).map((g, i) => { const sp = workSpans(rs.filter(r => r.root === g.key)); return `<div class="tlr"><span class="nm el">${SE[g.key].title}<span class="tg">${esc(SE[g.key].ws || '')}${SE[g.key].kids ? ` · ${SE[g.key].kids} 个子代理` : ''}</span></span>
-    <svg width="${TW}" height="14" style="display:block">${sp.map(([a, b]) => `<rect x="${TX(a).toFixed(1)}" y="2" width="${Math.max(8, TX(b) - TX(a)).toFixed(1)}" height="10" rx="5" fill="${PAL[i % PAL.length]}" ${tipA(`${SE[g.key].title}<br>${atLocal(a)} – ${fT(b).slice(0, 5)}`)}/>`).join('')}</svg><span class="v num">${fmt(g.in + g.out)}</span></div>`; }).join('');
-  const nt = Math.min(6, Math.max(2, Math.round((tB - tA) / 7200))), ticks = Array.from({ length: nt + 1 }, (_, i) => `<span>${week ? fD(tA + (tB - tA) * i / nt) : fT(tA + (tB - tA) * i / nt).slice(0, 5)}</span>`).join('');
+  const top = ss.slice(0, 4), restN = ss.length - top.length, restV = ss.slice(4).reduce((a, g) => a + g.in + g.out, 0);
+  // 本周：每个会话一行，七天各一格，颜色深浅 = 当天消耗；今天：工作时段时间轴
+  const w0 = wk0(), dayCell = (g, i) => { const v = Array.from({ length: 7 }, (_, d) => { const x = agg(rs.filter(r => r.root === g.key && r.t >= w0 + d * 86400 && r.t < w0 + (d + 1) * 86400)); return x.in + x.out; }), mx = Math.max(...v, 1);
+    return `<div class="wkg">${v.map((x, d) => `<i style="background:${x ? PAL[i % PAL.length] : ink(.05)};opacity:${x ? (.35 + .65 * x / mx).toFixed(2) : 1}" ${tipA(`${SE[g.key].title}<br>${WD[L(w0 + d * 86400).getUTCDay()]} · ${x ? fmt(x) : '没有调用'}`)}></i>`).join('')}</div>`; };
+  const lanes = top.map((g, i) => { const sp = workSpans(rs.filter(r => r.root === g.key)); return `<div class="tlr"><span class="nm el">${SE[g.key].title}<span class="tg">${esc(SE[g.key].ws || '')}</span></span>
+    ${week ? dayCell(g, i) : `<svg width="${TW}" height="14" style="display:block">${sp.map(([a, b]) => `<rect x="${TX(a).toFixed(1)}" y="2" width="${Math.max(8, TX(b) - TX(a)).toFixed(1)}" height="10" rx="5" fill="${PAL[i % PAL.length]}" ${tipA(`${SE[g.key].title}<br>${atLocal(a)} – ${fT(b).slice(0, 5)}`)}/>`).join('')}</svg>`}<span class="v num">${fmt(g.in + g.out)}</span></div>`; }).join('')
+    + (restN ? `<div class="tlr" style="height:22px"><span class="nm" style="color:var(--fg-4);font-size:12.5px">其余 ${restN} 个会话</span><span></span><span class="v num" style="color:var(--fg-4)">${fmt(restV)}</span></div>` : '');
+  const nt = Math.min(6, Math.max(2, Math.round((tB - tA) / 7200))), ticks = week ? Array.from({ length: 7 }, (_, d) => `<span style="flex:1;text-align:center">${WD[L(w0 + d * 86400).getUTCDay()]}</span>`).join('') : Array.from({ length: nt + 1 }, (_, i) => `<span>${fT(tA + (tB - tA) * i / nt).slice(0, 5)}</span>`).join('');
   // 本周每天
-  const w0 = wk0(), days = Array.from({ length: 7 }, (_, i) => { const a = w0 + i * 86400, r = rowsAB(a, a + 86400); return { i, a, s: spanSec(workSpans(r)), g: agg(r) }; }), dm = Math.max(...days.map(x => x.s), 3600), today = Math.floor((day0() - w0) / 86400);
+  const days = Array.from({ length: 7 }, (_, i) => { const a = w0 + i * 86400, r = rowsAB(a, a + 86400); return { i, a, s: spanSec(workSpans(r)), g: agg(r) }; }), dm = Math.max(...days.map(x => x.s), 3600), today = Math.floor((day0() - w0) / 86400);
   const wsum = days.reduce((a, x) => a + x.s, 0), wg = agg(rowsAB(w0, NOW + 1));
   const md = `## ${R.name}工作总结（${fD(NOW)}）\n\n- 工作时长：${hmT(sec)}\n- 会话：${ss.length} 个\n- 调用：${t.n} 次\n- 真实消耗：${fmt(t.in + t.out)} tokens\n- 花费：约 ${fUSD(t.cost)}\n- 缓存命中：${(hit * 100).toFixed(1)}%\n\n${ss.slice(0, 6).map(g => `- ${SE[g.key].title.replace(/&[^;]+;/g, '')}：${fmt(g.in + g.out)}`).join('\n')}`;
   window._repMd = md;
@@ -433,16 +438,16 @@ function vReport() {
         <div class="hi">${hi}</div><div class="say">${say}</div>
         <div class="row" style="gap:10px;margin-top:14px">${seg([['day', '今天'], ['week', '本周']], week ? 'week' : 'day', 'repw')}<span class="ibg"><span class="ib2" ${A('repcopy')} ${tipA('复制为 Markdown')}>${icon('copy', 15)}</span></span></div>
       </div>
-      <div class="md" style="grid-column:7 / span 6">${dusk(rowsAB(day0(), NOW + 1), SPANW(6))}</div>
+      <div class="md" style="grid-column:7 / span 6">${dusk(week || !rs.length ? rowsAB(wk0(), NOW + 1) : rs, SPANW(6))}</div>
     </section>
     <section class="rw">
-      ${stat('工作时长', hm(sec), sec, psec, G3.gemini, dl(sec, psec, d => hmT(d)))}
+      ${stat('工作时长', hm(sec), sec, psec, G3.gemini, dl(sec, psec, 'h'))}
       ${stat('真实消耗', unit(fmt(t.in + t.out)), t.in + t.out, p.in + p.out, G3.week, dl(t.in + t.out, p.in + p.out))}
-      ${stat('花费', fUSD(t.cost), t.cost, p.cost, G3.claude, dl(t.cost, p.cost))}
+      ${stat('花费', fUSD(t.cost), t.cost, p.cost, G3.claude, dl(t.cost, p.cost, '$'))}
       ${stat('缓存命中', `${(hit * 100).toFixed(1)}<small>%</small>`, hit, phit, G3.cyan, dl(hit, phit, null, 'pt'))}
     </section>
     <section class="rw"><div class="md" style="grid-column:1/-1">
-      <div class="hd" style="margin-bottom:8px"><span class="lb">${R.name}做了什么 · ${week ? fD(tA) + ' – ' + fD(tB) : fT(tA).slice(0, 5) + ' – ' + fT(tB).slice(0, 5)}</span><span class="lb" style="color:var(--fg-4)">${ss.length} 个会话 · ${proj.size} 个项目</span></div>
+      <div class="hd" style="margin-bottom:8px"><span class="lb">${R.name}做了什么${week ? ' · 每格一天，越深用得越多' : ` · ${fT(tA).slice(0, 5)} – ${fT(tB).slice(0, 5)}`}</span><span class="lb" style="color:var(--fg-4)">${ss.length} 个会话 · ${proj.size} 个项目</span></div>
       ${lanes || '<div class="cap">还没有会话</div>'}
       ${lanes ? `<div class="tlr" style="height:20px"><span></span><div class="row num" style="justify-content:space-between;font-size:11.5px;color:var(--fg-4)">${ticks}</div><span></span></div>` : ''}
     </div></section>
@@ -1017,6 +1022,6 @@ loadSt();
       if (lastInd && (lastInd.l !== to.l)) { ind.style.transition = 'none'; ind.style.left = lastInd.l + 'px'; ind.style.width = lastInd.w + 'px'; ind.offsetWidth; ind.style.transition = ''; }
       ind.style.left = to.l + 'px'; ind.style.width = to.w + 'px'; lastInd = to; }
     lastTab = st.tab + st.sp; lastOpen = open; lastMenu = st.menu; }; }
-{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (q.get('theme')) st.theme = Number(q.get('theme')); if (q.get('sel')) setTimeout(() => { const r = ledgerRows()[+q.get('sel')]; if (r) { st.lg.sel = r.idx; render(); } }, 1500); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
+{ const q = new URLSearchParams(location.search), t = q.get('tab'), m = q.get('menu'); if (t && VIEWS[t]) st.tab = t; if (q.get('range')) st.range = q.get('range'); if (q.get('theme')) st.theme = Number(q.get('theme')); if (q.get('repw')) st.rep.week = q.get('repw') === '1'; if (q.get('sel')) setTimeout(() => { const r = ledgerRows()[+q.get('sel')]; if (r) { st.lg.sel = r.idx; render(); } }, 1500); if (m) setTimeout(() => { st.menu = m; render(); }, 1200); }
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (LIVE.at) render(); }, 120); });
 refresh(); setInterval(refresh, 30000);

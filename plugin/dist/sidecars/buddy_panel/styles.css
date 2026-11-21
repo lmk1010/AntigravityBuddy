@@ -344,3 +344,5 @@ tr.xd td{height:auto;padding:0;border-bottom:1px solid var(--border)}
 .kv2{display:flex;justify-content:space-between;align-items:center;gap:12px;height:28px;font-size:13px;color:var(--fg-3)}
 .kv2 b{font-weight:400;color:var(--fg-2);min-width:0}.kv2 em{font-style:normal;color:var(--fg-4);font-size:12px;display:inline-block;width:56px;text-align:right}
 .kv2 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.wkg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.wkg i{height:14px;border-radius:5px}
+.rep .st .d{margin-top:10px}
